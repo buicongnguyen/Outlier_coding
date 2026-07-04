@@ -33,6 +33,22 @@
     .verdict.bad { color:var(--warn); }
     .retry-btn { min-height:38px; border:1px solid var(--accent); border-radius:6px; padding:7px 14px; background:var(--accent); color:#ffffff; font-weight:700; font-size:14px; cursor:pointer; }
     .retry-btn:hover { background:var(--accent-strong); border-color:var(--accent-strong); }
+    .qtype { display:inline-flex; align-items:center; margin-left:8px; padding:2px 9px; border-radius:999px; background:var(--accent-soft); color:var(--accent-strong); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.3px; white-space:nowrap; }
+    .options button.selected { border-color:var(--accent); background:var(--accent-soft); font-weight:700; }
+    .options button.missed { border-style:dashed; border-color:var(--accent-strong); color:var(--accent-strong); font-weight:700; opacity:1; }
+    .check-btn { margin-top:10px; min-height:36px; border:1px solid var(--accent); border-radius:6px; padding:6px 14px; background:var(--accent); color:#ffffff; font-weight:700; font-size:14px; cursor:pointer; }
+    .check-btn:hover:enabled { background:var(--accent-strong); border-color:var(--accent-strong); }
+    .check-btn:disabled { opacity:0.45; cursor:default; }
+    .order-seq { display:grid; gap:6px; padding:8px; border:1px dashed var(--line); border-radius:6px; margin-bottom:10px; }
+    .order-seq .placeholder { margin:4px 2px; color:var(--muted); font-size:14px; }
+    .order-pool { display:flex; flex-wrap:wrap; gap:8px; }
+    .order-pool button, .order-seq button { display:flex; align-items:center; gap:8px; min-height:38px; padding:7px 12px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); font-size:15px; text-align:left; cursor:pointer; }
+    .order-pool button:hover:enabled, .order-seq button:hover:enabled { border-color:var(--accent); background:var(--accent-soft); }
+    .order-seq button .n { font-weight:700; color:var(--accent-strong); min-width:20px; }
+    .order-seq button.correct { border-color:var(--accent-strong); background:var(--accent-soft); color:var(--accent-strong); font-weight:700; }
+    .order-seq button.correct .n, .order-seq button.incorrect .n { color:inherit; }
+    .order-seq button.incorrect { border-color:var(--warn); background:var(--warn-soft); color:var(--warn); font-weight:700; }
+    .order-seq button:disabled, .order-pool button:disabled { cursor:default; }
   </style>
 </head>
 <body>
@@ -58,13 +74,15 @@
         Revision notes and practice questions for software-engineering assessment work, covering five
         general skill areas: writing correct code, debugging and repair, compilers and programming
         languages, porting and migration, and developer tooling. Each section has a short knowledge
-        summary followed by five multiple-choice questions with explanations.
+        summary followed by practice questions in three certification-exam formats: single answer,
+        select-all-that-apply (multiple response), and arrange-in-order (build list). Every question
+        shows an explanation after you answer.
       </p>
     </section>
 
     <div class="score-bar" id="score-bar">
       <strong id="score-text">Score: 0 / 0</strong>
-      <p class="section-note" id="score-note">25 questions across 5 sections. Pick an answer to see the explanation.</p>
+      <p class="section-note" id="score-note">35 questions across 5 sections. Pick an answer to see the explanation.</p>
       <button class="retry-btn" id="retry" type="button">Retry (reshuffle)</button>
     </div>
 
@@ -384,6 +402,24 @@ const quizData = {
         ["It must be recursive", false]
       ],
       explain: "Preserving the relative order of equal keys is the definition of a stable sort - merge sort and insertion sort are stable; plain quicksort and heapsort are not. In-place refers to memory usage, which is a separate concern."
+    },
+    {
+      type: "multi",
+      q: "Select ALL operations that run in O(1) average time.",
+      options: [
+        ["Hash-map lookup by key", true],
+        ["Reading an array element by index", true],
+        ["Pushing onto a stack", true],
+        ["Binary search in a sorted array", false],
+        ["Finding the minimum of an unsorted array", false]
+      ],
+      explain: "Hash lookup, array indexing, and stack push are all constant time on average. Binary search is O(log n) - it still depends on n. Finding a minimum in unsorted data must examine every element: O(n). Multi-select questions punish stopping at the first right answer - you must judge every option."
+    },
+    {
+      type: "order",
+      q: "Arrange the complexity classes from slowest-growing (best at scale) to fastest-growing (worst at scale).",
+      steps: ["O(1)", "O(log n)", "O(n)", "O(n log n)", "O(n²)"],
+      explain: "Slower growth means the algorithm stays fast as n explodes. At n = 1,000,000: O(log n) is ~20 ops, O(n) is a million, O(n²) is a trillion - the ordering is the whole reason complexity analysis exists."
     }
   ],
   debugging: [
@@ -436,6 +472,31 @@ const quizData = {
         ["An exception swallowed by a catch block", false]
       ],
       explain: "Printing and debugging change timing and memory layout, which perturbs races, uninitialized reads, and other timing-dependent defects - the classic heisenbug. The move is to use low-overhead observation (counters, post-mortem dumps, thread sanitizers) instead of intrusive logging."
+    },
+    {
+      type: "multi",
+      q: "A crash report just came in. Select ALL practices that belong in a disciplined fix.",
+      options: [
+        ["Reproduce the failure on demand before changing code", true],
+        ["Fix the root cause, not the crash site", true],
+        ["Add a regression test that fails without the fix", true],
+        ["Wrap the crashing call in try/catch and ship", false],
+        ["Add defensive null checks to every function that touches the value", false]
+      ],
+      explain: "Reproduce, root-cause, regression test - that is the discipline. Swallowing the exception hides the defect and corrupts state silently; scattering null checks treats every function as a suspect instead of fixing the one place that produces the bad value."
+    },
+    {
+      type: "order",
+      q: "Put the debugging workflow steps into the order that wastes the least effort.",
+      steps: [
+        "Reproduce the failure on demand",
+        "Minimize the failing input and code path",
+        "Form a hypothesis about the cause",
+        "Test the hypothesis with a targeted experiment",
+        "Apply a minimal fix to the root cause",
+        "Add a regression test and run the full suite"
+      ],
+      explain: "Each step feeds the next: you cannot minimize what you cannot reproduce, hypotheses formed before minimizing chase too much surface area, and a fix applied before the hypothesis is confirmed is a guess. The regression test last proves the fix and locks it in."
     }
   ],
   compilers: [
@@ -488,6 +549,31 @@ const quizData = {
         ["Inlining", false]
       ],
       explain: "Evaluating expressions whose operands are all compile-time constants is constant folding. Dead-code elimination removes unreachable or unused code, unrolling replicates loop bodies to cut branch overhead, and inlining replaces a call with the callee's body."
+    },
+    {
+      type: "multi",
+      q: "Select ALL phases that run BEFORE the program is lowered to IR.",
+      options: [
+        ["Lexing (tokenizing)", true],
+        ["Parsing", true],
+        ["Type checking / semantic analysis", true],
+        ["Register allocation", false],
+        ["Instruction selection", false]
+      ],
+      explain: "The front end - lexing, parsing, semantic analysis - produces the typed AST that gets lowered to IR. Register allocation and instruction selection are back-end codegen work that consumes the optimized IR, at the far end of the pipeline."
+    },
+    {
+      type: "order",
+      q: "Arrange the compiler pipeline stages in the order a source file flows through them.",
+      steps: [
+        "Lexing: characters to tokens",
+        "Parsing: tokens to AST",
+        "Semantic analysis: types and scopes",
+        "Lowering to IR",
+        "Optimization passes",
+        "Code generation"
+      ],
+      explain: "Each stage consumes the previous stage's output: tokens feed the parser, the typed AST feeds IR lowering, and optimizations must run before codegen so the back end emits the improved program rather than the naive one."
     }
   ],
   porting: [
@@ -540,6 +626,31 @@ const quizData = {
         ["To keep the legacy team employed longer", false]
       ],
       explain: "Test suites cannot cover everything real traffic does. A canary exposes the new system to genuine load and inputs while capping the harm of any defect to a small slice of users, with rollback being a one-line routing change. Metrics from the 5% are compared against the 95% baseline before widening."
+    },
+    {
+      type: "multi",
+      q: "Select ALL differences that cause SILENT behavior changes when porting (rather than loud build or parse errors).",
+      options: [
+        ["Integer overflow and wrap-around semantics", true],
+        ["Default string encodings", true],
+        ["Division and modulo of negative numbers", true],
+        ["Different keywords for loops", false],
+        ["A missing semicolon", false]
+      ],
+      explain: "Syntax differences fail loudly - the compiler or parser rejects the file. The dangerous gaps are semantic: the code compiles and runs but computes different values. Overflow, encodings, and negative division/modulo are the classic silent traps."
+    },
+    {
+      type: "order",
+      q: "Arrange the strangler-fig migration steps in the order that keeps rollback possible at every point.",
+      steps: [
+        "Put a routing facade in front of the legacy system",
+        "Reimplement one feature in the new system",
+        "Verify parity: same inputs, diff old vs new outputs",
+        "Shift that feature's traffic to the new system",
+        "Repeat feature by feature until legacy serves nothing",
+        "Delete the legacy system"
+      ],
+      explain: "The facade must exist first - it is the routing point every later step depends on. Parity is proven before traffic moves so the shift is safe, and the legacy system is deleted only when it no longer serves anything, keeping a rollback path open the whole way."
     }
   ],
   tooling: [
@@ -592,6 +703,31 @@ const quizData = {
         ["Increase compiler optimization flags and hope", false]
       ],
       explain: "Hunches about performance are wrong often enough that optimizing without measuring wastes effort and adds complexity. A profiler (sampling for low overhead in production, instrumenting for exact counts) shows the real hot path - which is frequently not the suspected function."
+    },
+    {
+      type: "multi",
+      q: "Select ALL jobs a typical CI pipeline runs on every push.",
+      options: [
+        ["Build the project", true],
+        ["Run the test suite", true],
+        ["Lint and format checks", true],
+        ["Profile the production servers", false],
+        ["Force-push fixes to the main branch", false]
+      ],
+      explain: "CI's job is to validate the change itself: build, lint, test - fast, automatic, on every push. Profiling production is an operations activity, not a per-push gate, and CI never rewrites history; it only reports on what was pushed."
+    },
+    {
+      type: "order",
+      q: "Arrange the CI pipeline stages so each one fails as early and cheaply as possible.",
+      steps: [
+        "Checkout the source",
+        "Install dependencies from the lockfile",
+        "Lint and format check",
+        "Build",
+        "Run the test suite",
+        "Package and deploy"
+      ],
+      explain: "Cheap, fast checks run first so obvious problems fail in seconds, not minutes: lint needs only source, build needs dependencies, tests need the build. Packaging and deployment come last - they should only ever see changes that survived every earlier gate."
     }
   ]
 };
@@ -622,9 +758,26 @@ function updateScore() {
       : `${state.total - state.answered} of ${state.total} questions remaining.`;
 }
 
-function renderQuestion(container, item, number) {
+const TYPE_LABEL = { single: "single answer", multi: "select all that apply", order: "arrange in order" };
+
+function qHeader(item, number) {
+  const p = el("p", "q", `Q${number}. ${item.q} `);
+  p.appendChild(el("span", "qtype", TYPE_LABEL[item.type || "single"]));
+  return p;
+}
+
+function finish(explain, ok, text) {
+  state.answered += 1;
+  if (ok) state.correct += 1;
+  explain.appendChild(el("span", "verdict " + (ok ? "good" : "bad"), ok ? "Correct. " : "Incorrect. "));
+  explain.appendChild(document.createTextNode(text));
+  explain.classList.add("show");
+  updateScore();
+}
+
+function renderSingle(container, item, number) {
   const card = el("article", "quiz-card");
-  card.appendChild(el("p", "q", `Q${number}. ${item.q}`));
+  card.appendChild(qHeader(item, number));
   const optionsBox = el("div", "options");
   const explain = el("div", "explain");
 
@@ -633,18 +786,12 @@ function renderQuestion(container, item, number) {
     const btn = el("button", "", text);
     btn.type = "button";
     btn.addEventListener("click", () => {
-      state.answered += 1;
-      if (isCorrect) state.correct += 1;
       for (const b of buttons) {
         b.disabled = true;
         if (b.dataset.correct === "1") b.classList.add("correct");
       }
       if (!isCorrect) btn.classList.add("incorrect");
-      const verdict = el("span", "verdict " + (isCorrect ? "good" : "bad"), isCorrect ? "Correct. " : "Incorrect. ");
-      explain.appendChild(verdict);
-      explain.appendChild(document.createTextNode(item.explain));
-      explain.classList.add("show");
-      updateScore();
+      finish(explain, isCorrect, item.explain);
     });
     btn.dataset.correct = isCorrect ? "1" : "0";
     buttons.push(btn);
@@ -654,6 +801,120 @@ function renderQuestion(container, item, number) {
   card.appendChild(optionsBox);
   card.appendChild(explain);
   container.appendChild(card);
+}
+
+function renderMulti(container, item, number) {
+  const card = el("article", "quiz-card");
+  card.appendChild(qHeader(item, number));
+  const optionsBox = el("div", "options");
+  const explain = el("div", "explain");
+  const check = el("button", "check-btn", "Check answer");
+  check.type = "button";
+  check.disabled = true;
+
+  const buttons = [];
+  for (const [text, good] of shuffle(item.options)) {
+    const btn = el("button", "", text);
+    btn.type = "button";
+    btn.dataset.good = good ? "1" : "0";
+    btn.addEventListener("click", () => {
+      btn.classList.toggle("selected");
+      check.disabled = !optionsBox.querySelector(".selected");
+    });
+    buttons.push(btn);
+    optionsBox.appendChild(btn);
+  }
+
+  check.addEventListener("click", () => {
+    let ok = true;
+    let missedAny = false;
+    for (const b of buttons) {
+      const good = b.dataset.good === "1";
+      const sel = b.classList.contains("selected");
+      if (good !== sel) ok = false;
+      b.disabled = true;
+      b.classList.remove("selected");
+      if (good && sel) b.classList.add("correct");
+      else if (good && !sel) { b.classList.add("missed"); missedAny = true; }
+      else if (!good && sel) b.classList.add("incorrect");
+    }
+    check.disabled = true;
+    const note = missedAny ? " (Dashed outline marks correct options you missed.)" : "";
+    finish(explain, ok, item.explain + note);
+  });
+
+  card.appendChild(optionsBox);
+  card.appendChild(check);
+  card.appendChild(explain);
+  container.appendChild(card);
+}
+
+function renderOrder(container, item, number) {
+  const card = el("article", "quiz-card");
+  card.appendChild(qHeader(item, number));
+  const seq = el("div", "order-seq");
+  const placeholder = el("p", "placeholder", "Click the steps below in order. Click a placed step to send it back.");
+  seq.appendChild(placeholder);
+  const pool = el("div", "order-pool");
+  const explain = el("div", "explain");
+  const check = el("button", "check-btn", "Check order");
+  check.type = "button";
+  check.disabled = true;
+  let done = false;
+
+  function renumber() {
+    const placed = [...seq.querySelectorAll("button")];
+    placed.forEach((b, i) => { b.querySelector(".n").textContent = (i + 1) + "."; });
+    placeholder.style.display = placed.length ? "none" : "";
+    check.disabled = placed.length !== item.steps.length;
+  }
+
+  let order = shuffle(item.steps);
+  if (order.every((s, i) => s === item.steps[i])) order = order.slice().reverse();
+  for (const text of order) {
+    const btn = el("button");
+    btn.type = "button";
+    btn.dataset.step = text;
+    btn.appendChild(el("span", "n", ""));
+    btn.appendChild(document.createTextNode(text));
+    btn.addEventListener("click", () => {
+      if (done) return;
+      if (btn.parentElement === pool) {
+        seq.appendChild(btn);
+      } else {
+        btn.querySelector(".n").textContent = "";
+        pool.appendChild(btn);
+      }
+      renumber();
+    });
+    pool.appendChild(btn);
+  }
+
+  check.addEventListener("click", () => {
+    done = true;
+    const placed = [...seq.querySelectorAll("button")];
+    let ok = true;
+    placed.forEach((b, i) => {
+      const right = b.dataset.step === item.steps[i];
+      if (!right) ok = false;
+      b.classList.add(right ? "correct" : "incorrect");
+      b.disabled = true;
+    });
+    check.disabled = true;
+    finish(explain, ok, "Correct chain: " + item.steps.join(" → ") + ". " + item.explain);
+  });
+
+  card.appendChild(seq);
+  card.appendChild(pool);
+  card.appendChild(check);
+  card.appendChild(explain);
+  container.appendChild(card);
+}
+
+function renderQuestion(container, item, number) {
+  if (item.type === "multi") renderMulti(container, item, number);
+  else if (item.type === "order") renderOrder(container, item, number);
+  else renderSingle(container, item, number);
 }
 
 function renderAll() {

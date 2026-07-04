@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Revision notes and multiple-choice practice for coding, debugging, compilers, porting, and tooling.">
+  <title>Coding Skills Revision and MCQ Practice</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .term-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px; }
+    .term-card { background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); padding:14px; }
+    .term-card h3 { margin-bottom:6px; color:var(--accent-strong); }
+    .term-card p { color:var(--muted); margin-bottom:0; }
+    .diagram { margin:14px 0 0; padding:14px 16px; overflow-x:auto; background:var(--panel); border:1px solid var(--line); border-radius:8px; font-family:Consolas,Menlo,monospace; font-size:13px; line-height:1.45; color:var(--text); }
+    .diagram-title { margin:14px 0 0; font-size:13px; font-weight:700; color:var(--accent-strong); text-transform:uppercase; }
+    .score-bar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:18px 0; padding:12px 15px; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); }
+    .score-bar strong { font-size:17px; }
+    .score-bar .section-note { margin:0; }
+    .score-bar button { margin-left:auto; }
+    .quiz { margin-top:16px; }
+    .quiz-card { margin:10px 0; padding:14px 15px; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); }
+    .quiz-card p.q { margin-bottom:10px; font-weight:700; }
+    .options { display:grid; gap:8px; }
+    .options button { min-height:40px; padding:8px 12px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); font-size:15px; text-align:left; cursor:pointer; }
+    .options button:hover:enabled { border-color:var(--accent); background:var(--accent-soft); }
+    .options button:disabled { cursor:default; opacity:0.85; }
+    .options button.correct { border-color:var(--accent-strong); background:var(--accent-soft); color:var(--accent-strong); font-weight:700; opacity:1; }
+    .options button.incorrect { border-color:var(--warn); background:var(--warn-soft); color:var(--warn); font-weight:700; opacity:1; }
+    .explain { display:none; margin:10px 0 0; padding:10px 12px; border-left:3px solid var(--accent); background:var(--accent-soft); border-radius:0 6px 6px 0; color:var(--text); }
+    .explain.show { display:block; }
+    .verdict { font-weight:700; }
+    .verdict.good { color:var(--accent-strong); }
+    .verdict.bad { color:var(--warn); }
+    .retry-btn { min-height:38px; border:1px solid var(--accent); border-radius:6px; padding:7px 14px; background:var(--accent); color:#ffffff; font-weight:700; font-size:14px; cursor:pointer; }
+    .retry-btn:hover { background:var(--accent-strong); border-color:var(--accent-strong); }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Software engineering study hub</p>
+      <h1>Coding Skills Revision and MCQ Practice</h1>
+    </div>
+    <nav aria-label="Site navigation">
+      <a href="index.html">Hub</a>
+      <a href="#coding">Coding</a>
+      <a href="#debugging">Debugging</a>
+      <a href="#compilers">Compilers</a>
+      <a href="#porting">Porting</a>
+      <a href="#tooling">Tooling</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="section intro">
+      <h2>Study Goal</h2>
+      <p>
+        Revision notes and practice questions for software-engineering assessment work, covering five
+        general skill areas: writing correct code, debugging and repair, compilers and programming
+        languages, porting and migration, and developer tooling. Each section has a short knowledge
+        summary followed by five multiple-choice questions with explanations.
+      </p>
+    </section>
+
+    <div class="score-bar" id="score-bar">
+      <strong id="score-text">Score: 0 / 0</strong>
+      <p class="section-note" id="score-note">25 questions across 5 sections. Pick an answer to see the explanation.</p>
+      <button class="retry-btn" id="retry" type="button">Retry (reshuffle)</button>
+    </div>
+
+    <!-- ============ 1. CODING ============ -->
+    <section id="coding" class="section">
+      <h2>1. Coding</h2>
+      <p class="section-note">
+        Writing correct, readable code: choosing the right data structure, reasoning about time and
+        space complexity, and handling edge cases before they become bugs.
+      </p>
+      <div class="term-grid">
+        <article class="term-card"><h3>Correctness first</h3><p>Code is correct when it meets its specification for all valid inputs, including empty, minimal, maximal, and duplicate cases. Readability is what lets a reviewer verify that quickly.</p></article>
+        <article class="term-card"><h3>Big-O complexity</h3><p>Describes how running time or memory grows with input size n, ignoring constants: O(1), O(log n), O(n), O(n log n), O(n&sup2;). Compare algorithms by their growth rate, not their wall-clock time on one input.</p></article>
+        <article class="term-card"><h3>Core data structures</h3><p>Array (index access O(1)), linked list (cheap insert/remove at a known node), hash map (average O(1) lookup), stack (LIFO), queue (FIFO), heap (min/max in O(log n)), balanced tree (ordered ops in O(log n)).</p></article>
+        <article class="term-card"><h3>Edge cases</h3><p>Empty input, single element, all-equal elements, negative numbers, integer overflow, unicode, null/None, and boundary indices (first, last, off-by-one). Enumerate them before writing the loop.</p></article>
+        <article class="term-card"><h3>Invariants</h3><p>A property that holds before and after every loop iteration (for example, "left..right always brackets the answer" in binary search). Stating the invariant is the fastest way to argue a loop is correct.</p></article>
+        <article class="term-card"><h3>Stability and in-place</h3><p>A stable sort preserves the relative order of equal keys (merge sort yes, plain quicksort/heapsort no). In-place means O(1) extra space. Both are common trade-off questions.</p></article>
+      </div>
+      <p class="diagram-title">Choosing a structure by dominant operation</p>
+      <pre class="diagram">need fast lookup by key?        ── yes ──&gt;  hash map          O(1) avg
+need ordered keys / range scan? ── yes ──&gt;  balanced BST      O(log n)
+need min or max repeatedly?     ── yes ──&gt;  heap              O(log n) push/pop
+need FIFO processing?           ── yes ──&gt;  queue / deque     O(1) both ends
+need LIFO / undo / recursion?   ── yes ──&gt;  stack             O(1) push/pop
+mostly index reads, few edits?  ── yes ──&gt;  array             O(1) read, O(n) insert</pre>
+      <div class="quiz" data-section="coding"></div>
+    </section>
+
+    <!-- ============ 2. DEBUGGING & REPAIR ============ -->
+    <section id="debugging" class="section">
+      <h2>2. Debugging &amp; Repair</h2>
+      <p class="section-note">
+        Turning a failure into a fix: read the stack trace, reproduce, bisect to isolate, find the root
+        cause, then write a minimal fix plus a regression test that would have caught it.
+      </p>
+      <div class="term-grid">
+        <article class="term-card"><h3>Stack trace</h3><p>The chain of active calls at the moment of failure. The innermost frame (usually printed first) shows where the error was raised; walk outward to find the frame in your own code that supplied the bad value.</p></article>
+        <article class="term-card"><h3>Reproduce, then minimize</h3><p>A bug you can trigger on demand is half fixed. Shrink the failing input and the code path until removing anything else makes the failure disappear - that minimal repro usually points straight at the cause.</p></article>
+        <article class="term-card"><h3>Bisecting</h3><p>Binary search over history or over code: <code>git bisect</code> finds the first bad commit in O(log n) steps; commenting out half the suspect code does the same for a code path.</p></article>
+        <article class="term-card"><h3>Root cause vs symptom</h3><p>Patching where the crash happens (for example a null check at the crash site) often hides the real defect upstream. Ask "why was this value wrong?" repeatedly until the answer is a design or logic decision.</p></article>
+        <article class="term-card"><h3>Minimal fix</h3><p>The smallest change that corrects the root cause without reworking unrelated code. Small diffs are easier to review, safer to ship, and easier to revert.</p></article>
+        <article class="term-card"><h3>Regression test</h3><p>A test that fails on the buggy code and passes after the fix. It documents the bug and guarantees the same defect cannot silently return.</p></article>
+      </div>
+      <p class="diagram-title">Debugging decision flow</p>
+      <pre class="diagram">failure report
+     |
+     v
+can you reproduce it? ── no ──&gt; add logging / capture inputs ──&gt; retry
+     | yes
+     v
+read the stack trace ──&gt; error site in your code? ── no ──&gt; check inputs you passed
+     | yes                                                   to the library frame
+     v
+known recent change? ── yes ──&gt; git bisect / diff the change
+     | no
+     v
+minimize the repro ──&gt; form hypothesis ──&gt; test it (debugger / print / assert)
+     |                                          |
+     |            wrong hypothesis &lt;────────────┘
+     v
+root cause found ──&gt; minimal fix ──&gt; regression test ──&gt; run full test suite</pre>
+      <div class="quiz" data-section="debugging"></div>
+    </section>
+
+    <!-- ============ 3. COMPILERS & PROGRAMMING LANGUAGES ============ -->
+    <section id="compilers" class="section">
+      <h2>3. Compilers &amp; Programming Languages</h2>
+      <p class="section-note">
+        How source text becomes executable code: lexing, parsing, the AST, semantic analysis and type
+        checking, lowering to an intermediate representation, optimization passes, and code generation.
+      </p>
+      <div class="term-grid">
+        <article class="term-card"><h3>Lexing (tokenizing)</h3><p>Splits raw source text into tokens - identifiers, keywords, literals, operators - and discards whitespace and comments. Output: a flat token stream.</p></article>
+        <article class="term-card"><h3>Parsing</h3><p>Consumes the token stream according to the language grammar and builds a tree. Syntax errors ("unexpected token") are reported here.</p></article>
+        <article class="term-card"><h3>AST</h3><p>Abstract Syntax Tree: the parsed program as nested nodes (function, if, call, literal), stripped of punctuation. The data structure most tools - linters, formatters, transpilers - actually work on.</p></article>
+        <article class="term-card"><h3>Type checking</h3><p>Part of semantic analysis: verifies that operations match operand types, resolves names against scopes, and infers types where the language allows. Catches whole classes of bugs before the program runs.</p></article>
+        <article class="term-card"><h3>IR (intermediate representation)</h3><p>A simplified, machine-independent form of the program (for example LLVM IR, often in SSA form). It decouples front ends (languages) from back ends (CPUs) so optimizations are written once.</p></article>
+        <article class="term-card"><h3>Optimization &amp; codegen</h3><p>Passes over the IR: constant folding, dead-code elimination, inlining, loop transforms. Codegen then selects machine instructions, allocates registers, and emits the final binary or bytecode.</p></article>
+      </div>
+      <p class="diagram-title">Compiler pipeline</p>
+      <pre class="diagram">source code
+    |
+    v
++--------+  tokens   +--------+   AST    +-----------------+
+| lexer  | ────────&gt; | parser | ───────&gt; | semantic checks |
++--------+           +--------+          |  (types, scopes)|
+                                         +-----------------+
+                                                  |  typed AST
+                                                  v
+                                    +----------------------------+
+                                    | lower to IR  (e.g. SSA)    |
+                                    +----------------------------+
+                                                  |
+                                                  v
+                                    +----------------------------+
+                                    | optimization passes        |
+                                    |  const-fold, DCE, inline   |
+                                    +----------------------------+
+                                                  |
+                                                  v
+                                    +----------------------------+
+                                    | codegen: instr selection,  |
+                                    | register alloc, emit       |
+                                    +----------------------------+
+                                                  |
+                                                  v
+                                     machine code / bytecode</pre>
+      <div class="quiz" data-section="compilers"></div>
+    </section>
+
+    <!-- ============ 4. PORTING & MIGRATION ============ -->
+    <section id="porting" class="section">
+      <h2>4. Porting &amp; Migration</h2>
+      <p class="section-note">
+        Moving code across languages, runtimes, or versions while preserving behavior: shim the old API,
+        prove parity with tests, and roll out incrementally so you can retreat at any step.
+      </p>
+      <div class="term-grid">
+        <article class="term-card"><h3>Porting vs migration</h3><p>Porting moves code to a new language, platform, or runtime. Migration moves a system to a new version, schema, or service. Both share the same core risk: silent behavior change.</p></article>
+        <article class="term-card"><h3>Semantic gaps</h3><p>The dangerous differences hide in semantics, not syntax: integer width and overflow, string encoding, floating-point rounding, division/modulo of negatives, sort stability, evaluation order, and timezone handling.</p></article>
+        <article class="term-card"><h3>API shim / adapter</h3><p>A thin compatibility layer that exposes the old interface but delegates to the new implementation. Callers keep working unchanged while the internals move underneath them.</p></article>
+        <article class="term-card"><h3>Behavior-parity testing</h3><p>Run the same inputs through old and new implementations and diff the outputs (golden-master / characterization tests). It captures actual behavior - including bugs callers depend on - not just documented behavior.</p></article>
+        <article class="term-card"><h3>Strangler fig pattern</h3><p>Put a routing facade in front of the legacy system, then move one capability at a time to the new system until the old one has no traffic left and can be deleted. Avoids a big-bang rewrite.</p></article>
+        <article class="term-card"><h3>Incremental rollout</h3><p>Feature flags, canary releases, and shadow traffic (send requests to both, serve from old, compare). Each limits blast radius and gives an instant rollback path.</p></article>
+      </div>
+      <p class="diagram-title">Strangler-fig migration flow</p>
+      <pre class="diagram">step 1: all traffic to legacy        step 2: facade routes per feature
+
+clients ──&gt; +--------+               clients ──&gt; +--------+──&gt; legacy (B, C)
+            | legacy |                           | facade |
+            | A B C  |                           +--------+──&gt; new (A)
+            +--------+
+
+step 3: features move one by one     step 4: legacy is empty - delete it
+
+clients ──&gt; +--------+──&gt; legacy (C) clients ──&gt; +--------+
+            | facade |                           | facade |──&gt; new (A B C)
+            +--------+──&gt; new (A, B)             +--------+
+
+at every step: parity tests compare old vs new, rollback = flip the route</pre>
+      <div class="quiz" data-section="porting"></div>
+    </section>
+
+    <!-- ============ 5. TOOLING ============ -->
+    <section id="tooling" class="section">
+      <h2>5. Tooling</h2>
+      <p class="section-note">
+        The infrastructure around the code: build systems, linters, formatters, package managers,
+        continuous integration, and profilers. Good tooling turns "works on my machine" into
+        "works everywhere, provably".
+      </p>
+      <div class="term-grid">
+        <article class="term-card"><h3>Build systems</h3><p>Make, Gradle, Bazel, MSBuild: they model targets and dependencies as a graph and rebuild only what changed (by timestamp or content hash). Correct incremental builds require accurately declared dependencies.</p></article>
+        <article class="term-card"><h3>Linters</h3><p>Static analysis of source or AST for likely bugs and style violations: unused variables, unreachable code, suspicious comparisons. They find problems without running the code.</p></article>
+        <article class="term-card"><h3>Formatters</h3><p>Rewrite code layout (whitespace, wrapping, quotes) to one canonical style without changing behavior. They end style debates and shrink diffs to real changes.</p></article>
+        <article class="term-card"><h3>Package managers &amp; lockfiles</h3><p>npm, pip, cargo, NuGet resolve and fetch dependencies. The manifest says what you want (ranges); the lockfile pins the exact resolved versions so every machine and CI run installs identical bytes.</p></article>
+        <article class="term-card"><h3>Continuous integration</h3><p>Every push triggers an automated pipeline: build, lint, test, package. Failures surface within minutes of the change that caused them, while the diff is small and fresh in the author's mind.</p></article>
+        <article class="term-card"><h3>Profilers</h3><p>Measure where time and memory actually go. Sampling profilers periodically capture stacks (low overhead); instrumenting profilers time every call (exact but slower). Always measure before optimizing.</p></article>
+      </div>
+      <p class="diagram-title">A typical CI pipeline</p>
+      <pre class="diagram">push / pull request
+       |
+       v
++-----------+    +----------+    +----------+    +-----------+    +---------+
+| checkout  |──&gt; | install  |──&gt; |  lint +  |──&gt; |   build   |──&gt; |  test   |
+|  source   |    | deps     |    |  format  |    |           |    |  suite  |
++-----------+    | (lockfile)|   |  check   |    +-----------+    +---------+
+                 +----------+    +----------+          |               |
+                                                  fail fast:      pass ──&gt; package
+                                                  any red step         &amp; deploy /
+                                                  blocks merge         publish</pre>
+      <div class="quiz" data-section="tooling"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Plain HTML/CSS/JS, no dependencies, works offline. Styles shared with the Isaac Sim study hub.</p>
+  </footer>
+
+<script>
+const quizData = {
+  coding: [
+    {
+      q: "What is the worst-case time complexity of looking up a key in a hash table where every key hashes to the same bucket (separate chaining)?",
+      options: [
+        ["O(1)", false],
+        ["O(log n)", false],
+        ["O(n)", true],
+        ["O(n log n)", false]
+      ],
+      explain: "Average-case lookup is O(1), but if all n keys collide into one bucket, the chain is a linked list of length n and lookup degrades to a linear scan: O(n). This is why interviewers distinguish average from worst case for hash tables."
+    },
+    {
+      q: "You need to process work items strictly in the order they arrived. Which data structure fits best?",
+      options: [
+        ["Stack", false],
+        ["Queue", true],
+        ["Hash map", false],
+        ["Max-heap", false]
+      ],
+      explain: "First-in-first-out ordering is exactly what a queue provides. A stack gives LIFO (most recent first), a hash map has no ordering guarantee, and a heap orders by priority rather than arrival time."
+    },
+    {
+      q: "Which loop condition is the classic off-by-one error when iterating an array of length n with zero-based indexing?",
+      options: [
+        ["for (i = 0; i < n; i++)", false],
+        ["for (i = 0; i <= n; i++)", true],
+        ["for (i = n - 1; i >= 0; i--)", false],
+        ["for (i = 0; i < n - 1; i += 2)", false]
+      ],
+      explain: "Valid indices run from 0 to n-1. The condition i <= n lets i reach n, reading one element past the end - an out-of-bounds access or undefined behavior. The first and third options visit exactly the valid range."
+    },
+    {
+      q: "Binary search on a sorted array of n elements runs in which time complexity?",
+      options: [
+        ["O(n)", false],
+        ["O(n log n)", false],
+        ["O(log n)", true],
+        ["O(1)", false]
+      ],
+      explain: "Each comparison halves the remaining search range, so the number of steps is how many times you can halve n before reaching 1 - that is log2(n). The invariant is that the target, if present, always lies inside the current [left, right] window."
+    },
+    {
+      q: "You must sort records by score, but records with equal scores must keep their original relative order. Which property does your sort need?",
+      options: [
+        ["It must be in-place", false],
+        ["It must be stable", true],
+        ["It must be comparison-free", false],
+        ["It must be recursive", false]
+      ],
+      explain: "Preserving the relative order of equal keys is the definition of a stable sort - merge sort and insertion sort are stable; plain quicksort and heapsort are not. In-place refers to memory usage, which is a separate concern."
+    }
+  ],
+  debugging: [
+    {
+      q: "A Python traceback ends with a ValueError raised inside a library function. Where should you look first for the actual defect?",
+      options: [
+        ["Inside the library function that raised the error", false],
+        ["The outermost frame (program entry point)", false],
+        ["The innermost frame of your own code, which passed the bad value into the library", true],
+        ["The Python interpreter source", false]
+      ],
+      explain: "Libraries usually raise because they were given invalid input. Walk from the raise site outward until you hit the first frame in your own code - that call is where the bad value crossed the boundary, and the defect is there or further upstream in your code."
+    },
+    {
+      q: "A test passed two weeks ago and fails today; there are about 200 commits in between. What is the fastest systematic way to find the commit that broke it?",
+      options: [
+        ["Read the diff of all 200 commits", false],
+        ["git bisect: binary search over the commit range", true],
+        ["Revert commits one by one from newest to oldest", false],
+        ["Rewrite the failing test", false]
+      ],
+      explain: "git bisect binary-searches history: mark a known-good and known-bad commit, and it checks out midpoints for you to test. 200 commits take about 8 tests (log2 200). Linear reverts average 100 steps, and reading diffs does not prove which change caused the failure."
+    },
+    {
+      q: "Your service crashes with a null reference in function C. Function A produced the null, passed it through B, into C. What is the correct minimal fix?",
+      options: [
+        ["Add a null check in C and return early", false],
+        ["Wrap the call to C in a try/catch and log the error", false],
+        ["Fix A so it no longer produces the invalid null, and add a regression test", true],
+        ["Add null checks in A, B, and C to be safe", false]
+      ],
+      explain: "The null in A is the root cause; the crash in C is only the symptom. Guarding C hides the defect and lets the bad value flow elsewhere. Fixing the source plus a regression test corrects the defect and proves it stays fixed. Scattering checks everywhere adds noise without fixing why the null appears."
+    },
+    {
+      q: "What must be true of a good regression test for a bug you just fixed?",
+      options: [
+        ["It passes both before and after the fix", false],
+        ["It fails on the pre-fix code and passes on the fixed code", true],
+        ["It covers as many unrelated code paths as possible", false],
+        ["It runs only in production", false]
+      ],
+      explain: "If the test does not fail on the buggy code, it does not actually capture the bug - you should run it against the pre-fix version (or revert the fix briefly) to confirm. A test that passes either way proves nothing and gives false confidence."
+    },
+    {
+      q: "A bug reliably disappears whenever you add print statements or run under a debugger. What kind of bug does this most strongly suggest?",
+      options: [
+        ["A syntax error", false],
+        ["A timing-dependent bug such as a race condition", true],
+        ["A misconfigured linter", false],
+        ["An exception swallowed by a catch block", false]
+      ],
+      explain: "Printing and debugging change timing and memory layout, which perturbs races, uninitialized reads, and other timing-dependent defects - the classic heisenbug. The move is to use low-overhead observation (counters, post-mortem dumps, thread sanitizers) instead of intrusive logging."
+    }
+  ],
+  compilers: [
+    {
+      q: "What does the lexer (tokenizer) produce as its output?",
+      options: [
+        ["An abstract syntax tree", false],
+        ["A stream of tokens", true],
+        ["Machine code", false],
+        ["An optimized intermediate representation", false]
+      ],
+      explain: "The lexer splits raw characters into tokens - identifiers, keywords, literals, operators - and drops whitespace and comments. The parser then consumes that token stream to build the tree; the AST, IR, and machine code all come later in the pipeline."
+    },
+    {
+      q: "The error \"unexpected token ')' at line 12\" is reported by which compiler phase?",
+      options: [
+        ["Lexing", false],
+        ["Parsing", true],
+        ["Type checking", false],
+        ["Code generation", false]
+      ],
+      explain: "\"Unexpected token\" means the token itself was valid but appeared where the grammar does not allow it - a syntax error, caught by the parser. The lexer only rejects malformed tokens; type errors come later in semantic analysis."
+    },
+    {
+      q: "In which phase does a compiler report \"cannot add int and string\"?",
+      options: [
+        ["Lexing", false],
+        ["Parsing", false],
+        ["Semantic analysis / type checking", true],
+        ["Register allocation", false]
+      ],
+      explain: "The expression is syntactically fine - it parses into a valid AST node. Only when the type checker computes the types of both operands does the mismatch surface. This is the classic example separating syntax errors from semantic errors."
+    },
+    {
+      q: "Why do compilers like LLVM lower programs into a machine-independent IR instead of translating source directly to machine code?",
+      options: [
+        ["IR runs faster than machine code", false],
+        ["It lets M language front ends share one set of optimizations and N CPU back ends (M+N instead of M×N)", true],
+        ["IR is required for the lexer to work", false],
+        ["It makes the compiler binary smaller", false]
+      ],
+      explain: "With a shared IR, each new language needs only a front end and each new CPU only a back end - optimizations written once on the IR benefit every combination. Without it you would need a full M×N matrix of language-to-CPU translators. IR itself is not executed faster; it is an internal form."
+    },
+    {
+      q: "A compiler replaces the expression 60 * 60 * 24 with the constant 86400 at compile time. What is this optimization called?",
+      options: [
+        ["Dead-code elimination", false],
+        ["Loop unrolling", false],
+        ["Constant folding", true],
+        ["Inlining", false]
+      ],
+      explain: "Evaluating expressions whose operands are all compile-time constants is constant folding. Dead-code elimination removes unreachable or unused code, unrolling replicates loop bodies to cut branch overhead, and inlining replaces a call with the callee's body."
+    }
+  ],
+  porting: [
+    {
+      q: "You are porting numeric code from C (32-bit int arithmetic) to JavaScript. Which difference is the most likely source of silent wrong answers?",
+      options: [
+        ["JavaScript uses different keywords for loops", false],
+        ["JavaScript numbers are 64-bit floats, so integer overflow wraps differently and large ints lose precision", true],
+        ["JavaScript files use a different file extension", false],
+        ["JavaScript requires semicolons", false]
+      ],
+      explain: "Syntax differences fail loudly at parse time; semantic differences fail silently. C ints wrap at 2^32 while JS numbers are IEEE-754 doubles - exact only up to 2^53 and never wrapping. Code that relies on overflow behavior or bitwise tricks produces different values with no error raised."
+    },
+    {
+      q: "What is the role of an API shim (adapter) during an incremental migration?",
+      options: [
+        ["It permanently replaces the new API with the old one", false],
+        ["It exposes the old interface to callers while delegating to the new implementation underneath", true],
+        ["It deletes deprecated functions from the codebase", false],
+        ["It converts source code between languages automatically", false]
+      ],
+      explain: "A shim is a thin compatibility layer: callers keep using the interface they already depend on while the implementation behind it is swapped. This decouples the migration of the implementation from the migration of every call site, so both can proceed independently."
+    },
+    {
+      q: "What is the most reliable way to verify that a rewritten module behaves the same as the original?",
+      options: [
+        ["Careful side-by-side code review of both versions", false],
+        ["Run the same inputs through both implementations and diff the outputs", true],
+        ["Check that both compile without warnings", false],
+        ["Confirm the new code has more unit tests than the old code", false]
+      ],
+      explain: "Behavior-parity (golden-master / characterization) testing compares actual outputs on real and edge-case inputs, catching differences no review would spot - including undocumented behavior that callers depend on. Reviews and compiler warnings check the code, not its observable behavior."
+    },
+    {
+      q: "In the strangler fig migration pattern, what happens to the legacy system?",
+      options: [
+        ["It is shut down on day one and replaced by the new system", false],
+        ["It runs forever alongside the new system", false],
+        ["A facade routes traffic; features move to the new system one at a time until the legacy system serves nothing and is deleted", true],
+        ["It is compiled into the new system as a library", false]
+      ],
+      explain: "The pattern (named after the fig that gradually envelops a host tree) avoids big-bang cutover risk: the facade lets each feature migrate and be verified independently, and at every step rollback is just flipping a route. The legacy system dies only when it no longer serves traffic."
+    },
+    {
+      q: "Why route only 5% of traffic (a canary) to the migrated service before full rollout?",
+      options: [
+        ["To reduce server costs during migration", false],
+        ["To limit the blast radius of unknown defects and allow instant rollback while comparing real-traffic behavior", true],
+        ["Because load balancers cannot handle 100% cutover", false],
+        ["To keep the legacy team employed longer", false]
+      ],
+      explain: "Test suites cannot cover everything real traffic does. A canary exposes the new system to genuine load and inputs while capping the harm of any defect to a small slice of users, with rollback being a one-line routing change. Metrics from the 5% are compared against the 95% baseline before widening."
+    }
+  ],
+  tooling: [
+    {
+      q: "How does a build system like Make or Bazel decide what to rebuild after you edit one file?",
+      options: [
+        ["It always rebuilds everything to be safe", false],
+        ["It walks the dependency graph and rebuilds only targets whose inputs changed (by timestamp or content hash)", true],
+        ["It rebuilds a random subset and checks whether tests pass", false],
+        ["It asks the developer to list the affected files", false]
+      ],
+      explain: "Targets and their declared dependencies form a directed acyclic graph. A target is stale only if an input is newer (Make: timestamps) or its content hash changed (Bazel). This is why an undeclared dependency is the classic cause of wrong incremental builds - the graph lies, so a stale target is skipped."
+    },
+    {
+      q: "What is the key difference between a linter and a formatter?",
+      options: [
+        ["A linter flags likely bugs and suspicious patterns; a formatter only rewrites layout without changing behavior", true],
+        ["A linter is for compiled languages, a formatter for interpreted ones", false],
+        ["A formatter finds bugs; a linter fixes them", false],
+        ["There is no difference; the terms are interchangeable", false]
+      ],
+      explain: "Linters (ESLint, pylint, clang-tidy) do static analysis for probable defects: unused variables, unreachable code, suspicious comparisons. Formatters (Prettier, Black, gofmt) canonicalize whitespace and wrapping only - by design they never change what the code does."
+    },
+    {
+      q: "What problem does a lockfile (package-lock.json, poetry.lock, Cargo.lock) solve?",
+      options: [
+        ["It prevents two developers from editing the same file simultaneously", false],
+        ["It pins exact resolved versions of every dependency (and their dependencies) so all installs are identical", true],
+        ["It encrypts dependencies for security", false],
+        ["It makes package downloads faster by caching them", false]
+      ],
+      explain: "The manifest declares ranges (^1.2.0); the lockfile records the exact versions that were resolved, transitively. Without it, two installs at different times can pull different transitive versions - the root of \"works on my machine\" dependency bugs and unreproducible CI failures."
+    },
+    {
+      q: "What is the primary purpose of continuous integration (CI)?",
+      options: [
+        ["To deploy code to production automatically without tests", false],
+        ["To automatically build and test every change so integration failures surface within minutes, while the diff is small", true],
+        ["To replace the need for code review", false],
+        ["To back up the repository to the cloud", false]
+      ],
+      explain: "CI's value is fast feedback on small diffs: a failure detected minutes after the push is traced to one small change by the person who just wrote it. Deployment automation is CD, a separate (later) stage, and CI complements review rather than replacing it."
+    },
+    {
+      q: "Your service is slow and you have a hunch a certain function is the bottleneck. What should you do first?",
+      options: [
+        ["Rewrite the suspected function in a faster language", false],
+        ["Profile the service to measure where time is actually spent", true],
+        ["Add more servers", false],
+        ["Increase compiler optimization flags and hope", false]
+      ],
+      explain: "Hunches about performance are wrong often enough that optimizing without measuring wastes effort and adds complexity. A profiler (sampling for low overhead in production, instrumenting for exact counts) shows the real hot path - which is frequently not the suspected function."
+    }
+  ]
+};
+
+const state = { answered: 0, correct: 0, total: 0 };
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text) node.textContent = text;
+  return node;
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function updateScore() {
+  document.getElementById("score-text").textContent = `Score: ${state.correct} / ${state.answered}`;
+  document.getElementById("score-note").textContent =
+    state.answered === state.total
+      ? `Done! ${state.correct} of ${state.total} correct (${Math.round(100 * state.correct / state.total)}%). Retry to reshuffle.`
+      : `${state.total - state.answered} of ${state.total} questions remaining.`;
+}
+
+function renderQuestion(container, item, number) {
+  const card = el("article", "quiz-card");
+  card.appendChild(el("p", "q", `Q${number}. ${item.q}`));
+  const optionsBox = el("div", "options");
+  const explain = el("div", "explain");
+
+  const buttons = [];
+  for (const [text, isCorrect] of shuffle(item.options)) {
+    const btn = el("button", "", text);
+    btn.type = "button";
+    btn.addEventListener("click", () => {
+      state.answered += 1;
+      if (isCorrect) state.correct += 1;
+      for (const b of buttons) {
+        b.disabled = true;
+        if (b.dataset.correct === "1") b.classList.add("correct");
+      }
+      if (!isCorrect) btn.classList.add("incorrect");
+      const verdict = el("span", "verdict " + (isCorrect ? "good" : "bad"), isCorrect ? "Correct. " : "Incorrect. ");
+      explain.appendChild(verdict);
+      explain.appendChild(document.createTextNode(item.explain));
+      explain.classList.add("show");
+      updateScore();
+    });
+    btn.dataset.correct = isCorrect ? "1" : "0";
+    buttons.push(btn);
+    optionsBox.appendChild(btn);
+  }
+
+  card.appendChild(optionsBox);
+  card.appendChild(explain);
+  container.appendChild(card);
+}
+
+function renderAll() {
+  state.answered = 0;
+  state.correct = 0;
+  state.total = 0;
+  for (const quizBox of document.querySelectorAll(".quiz")) {
+    quizBox.innerHTML = "";
+    const items = shuffle(quizData[quizBox.dataset.section]);
+    items.forEach((item, i) => {
+      state.total += 1;
+      renderQuestion(quizBox, item, i + 1);
+    });
+  }
+  updateScore();
+}
+
+document.getElementById("retry").addEventListener("click", renderAll);
+renderAll();
+</script>
+</body>
+</html>

@@ -90,6 +90,22 @@ need min or max repeatedly?     ── yes ──&gt;  heap              O(log n
 need FIFO processing?           ── yes ──&gt;  queue / deque     O(1) both ends
 need LIFO / undo / recursion?   ── yes ──&gt;  stack             O(1) push/pop
 mostly index reads, few edits?  ── yes ──&gt;  array             O(1) read, O(n) insert</pre>
+      <p class="diagram-title">Big-O at a glance (n = 1,000 items, log scale)</p>
+      <pre class="diagram">O(1)         1 op          ▏          hash lookup, array[i]
+O(log n)     ~10 ops       █          binary search
+O(n)         1,000         ███        one pass over the data
+O(n log n)   ~10,000       ████       merge sort, sorting in general
+O(n&sup2;)        1,000,000     ██████     nested loops: compare every pair
+
+each extra █ ~ one more zero — the gap explodes as n grows</pre>
+      <p class="diagram-title">Why binary search is O(log n)</p>
+      <pre class="diagram">find 61 in 9 sorted elements — probe the middle, drop half each step
+
+step 1   [  4   8  15  16 (23) 42  61  77  90 ]    23 &lt; 61 → drop left half
+step 2                       [ 42 (61) 77  90 ]    61 = 61 → found
+
+window: 9 → 4 → 2 → 1        steps ≈ log2(n), the loop invariant is
+                             "if present, target is inside [left..right]"</pre>
       <div class="quiz" data-section="coding"></div>
     </section>
 
@@ -126,6 +142,26 @@ minimize the repro ──&gt; form hypothesis ──&gt; test it (debugger / pri
      |            wrong hypothesis &lt;────────────┘
      v
 root cause found ──&gt; minimal fix ──&gt; regression test ──&gt; run full test suite</pre>
+      <p class="diagram-title">Reading a stack trace (Python style, innermost frame last)</p>
+      <pre class="diagram">Traceback (most recent call last):
+  File "app.py", line 12, in main               ← outermost: program entry
+    total = build_report(orders)
+  File "report.py", line 30, in build_report    ← last frame of YOUR code:
+    avg = mean(prices)                            the empty list was passed here
+  File "statistics.py", line 315, in mean       ← innermost: where it was raised
+StatisticsError: mean requires at least one data point
+
+read from the raise site outward: the library raised because YOUR call fed it
+bad data → the real question is "why was prices empty upstream?"</pre>
+      <p class="diagram-title">git bisect: binary search over history</p>
+      <pre class="diagram">G = known good    B = known bad    ? = untested     (~200 commits ≈ 8 tests)
+
+G ? ? ? ? ? ? ? ? ? ? ? ? ? ? B
+              ^ test middle → FAIL          bug is in the left half
+G ? ? ? ? ? ? B
+      ^ test middle → PASS                  bug is in the right half
+      G ? ? ? B
+         ^ …keep halving until one commit remains → the breaking change</pre>
       <div class="quiz" data-section="debugging"></div>
     </section>
 
@@ -172,6 +208,18 @@ root cause found ──&gt; minimal fix ──&gt; regression test ──&gt; ru
                                                   |
                                                   v
                                      machine code / bytecode</pre>
+      <p class="diagram-title">From source text to AST: x = 1 + 2 * y</p>
+      <pre class="diagram">source     x = 1 + 2 * y
+
+lexer      IDENT(x)  '='  INT(1)  '+'  INT(2)  '*'  IDENT(y)     flat token stream
+
+parser         =
+              / \
+             x   +           * binds tighter than +, so the tree
+                / \          encodes operator precedence that the
+               1   *         flat token stream cannot express:
+                  / \        the program means x = 1 + (2*y),
+                 2   y       never (1+2) * y</pre>
       <div class="quiz" data-section="compilers"></div>
     </section>
 
@@ -205,6 +253,27 @@ clients ──&gt; +--------+──&gt; legacy (C) clients ──&gt; +--------+
             +--------+──&gt; new (A, B)             +--------+
 
 at every step: parity tests compare old vs new, rollback = flip the route</pre>
+      <p class="diagram-title">API shim: callers never notice the swap</p>
+      <pre class="diagram">before                     during migration                 after cleanup
+
+caller                     caller (unchanged)               caller (updated)
+  |                          |                                |
+  v                          v                                v
+old_api() ──&gt; old code     old_api()                        new_api() ──&gt; new code
+                             |
+                          +------+
+                          | shim |  same old signature,
+                          +------+  translates args/results
+                             |
+                             v
+                          new code</pre>
+      <p class="diagram-title">Behavior-parity (golden master) testing</p>
+      <pre class="diagram">                        +──&gt; old implementation ──&gt; output A ──+
+recorded real inputs ───+                                      +──&gt; diff A vs B
++ edge cases            +──&gt; new implementation ──&gt; output B ──+
+
+any difference is a behavior change caught before users see it —
+including "bugs" the old system had that callers now depend on</pre>
       <div class="quiz" data-section="porting"></div>
     </section>
 
@@ -236,6 +305,25 @@ at every step: parity tests compare old vs new, rollback = flip the route</pre>
                                                   fail fast:      pass ──&gt; package
                                                   any red step         &amp; deploy /
                                                   blocks merge         publish</pre>
+      <p class="diagram-title">Incremental build: only the stale path rebuilds</p>
+      <pre class="diagram">          app  (link step)
+         /   \
+    main.o   util.o
+      |        |
+    main.c   util.c   ← you edit util.c
+
+util.c changed → util.o stale → app stale     rebuild: 2 steps
+main.c untouched → main.o reused              skipped: 1 step
+
+an UNDECLARED dependency breaks this: the graph lies, a stale
+target is skipped, and you get a wrong "successful" build</pre>
+      <p class="diagram-title">Manifest vs lockfile</p>
+      <pre class="diagram">manifest — what you ASK for         lockfile — what you actually GOT
+"lib-a": "^1.2.0"           ──&gt;     lib-a  1.2.9
+                                      └─ lib-b  3.4.1   (transitive, also pinned)
+
+every install replays the lockfile → identical dependency tree
+on every developer machine and every CI run</pre>
       <div class="quiz" data-section="tooling"></div>
     </section>
   </main>

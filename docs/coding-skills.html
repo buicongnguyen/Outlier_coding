@@ -34,6 +34,7 @@
     .retry-btn { min-height:38px; border:1px solid var(--accent); border-radius:6px; padding:7px 14px; background:var(--accent); color:#ffffff; font-weight:700; font-size:14px; cursor:pointer; }
     .retry-btn:hover { background:var(--accent-strong); border-color:var(--accent-strong); }
     .qtype { display:inline-flex; align-items:center; margin-left:8px; padding:2px 9px; border-radius:999px; background:var(--accent-soft); color:var(--accent-strong); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.3px; white-space:nowrap; }
+    .qtype.qlevel { background:var(--warn-soft); color:var(--warn); }
     .options button.selected { border-color:var(--accent); background:var(--accent-soft); font-weight:700; }
     .options button.missed { border-style:dashed; border-color:var(--accent-strong); color:var(--accent-strong); font-weight:700; opacity:1; }
     .check-btn { margin-top:10px; min-height:36px; border:1px solid var(--accent); border-radius:6px; padding:6px 14px; background:var(--accent); color:#ffffff; font-weight:700; font-size:14px; cursor:pointer; }
@@ -75,14 +76,15 @@
         general skill areas: writing correct code, debugging and repair, compilers and programming
         languages, porting and migration, and developer tooling. Each section has a short knowledge
         summary followed by practice questions in three certification-exam formats: single answer,
-        select-all-that-apply (multiple response), and arrange-in-order (build list). Every question
-        shows an explanation after you answer.
+        select-all-that-apply (multiple response), and arrange-in-order (build list). Questions tagged
+        <em>principal level</em> test judgment - trade-offs, failure modes at scale, and second-order
+        effects - rather than recall. Every question shows an explanation after you answer.
       </p>
     </section>
 
     <div class="score-bar" id="score-bar">
       <strong id="score-text">Score: 0 / 0</strong>
-      <p class="section-note" id="score-note">35 questions across 5 sections. Pick an answer to see the explanation.</p>
+      <p class="section-note" id="score-note">45 questions across 5 sections. Pick an answer to see the explanation.</p>
       <button class="retry-btn" id="retry" type="button">Retry (reshuffle)</button>
     </div>
 
@@ -420,6 +422,30 @@ const quizData = {
       q: "Arrange the complexity classes from slowest-growing (best at scale) to fastest-growing (worst at scale).",
       steps: ["O(1)", "O(log n)", "O(n)", "O(n log n)", "O(n²)"],
       explain: "Slower growth means the algorithm stays fast as n explodes. At n = 1,000,000: O(log n) is ~20 ops, O(n) is a million, O(n²) is a trillion - the ordering is the whole reason complexity analysis exists."
+    },
+    {
+      level: "principal",
+      q: "A utility function in your internal library (400 consuming services) has for five years returned results sorted DESCENDING while its documentation says ascending. You now need the documented behavior. What is the right move?",
+      options: [
+        ["Fix the function to match the docs and announce it in the release notes", false],
+        ["Treat the shipped behavior as the real contract: keep it, fix the docs, add a new function or parameter with the new behavior, and migrate callers gradually", true],
+        ["Fix the behavior behind a minor version bump - semantic versioning covers it", false],
+        ["Delete the function so every consumer must consciously re-choose", false]
+      ],
+      explain: "This is Hyrum's Law: with enough users, every observable behavior of your API becomes a dependency someone relies on, regardless of what the docs promise. After five years, callers have built on descending order - 'fixing' it is a silent breaking change across 400 services that no release note reliably reaches. The shipped behavior is the contract; evolve it additively."
+    },
+    {
+      level: "principal",
+      type: "multi",
+      q: "Select ALL situations where keeping the asymptotically WORSE algorithm is the right engineering call.",
+      options: [
+        ["The input size is small and bounded by design (say, at most a few dozen items)", true],
+        ["The simpler algorithm has better constants and cache behavior at real input sizes", true],
+        ["The code is on a cold path and clarity matters more than speed", true],
+        ["Never - lower big-O always wins in production", false],
+        ["The worse-complexity version is already timing out on production inputs", false]
+      ],
+      explain: "Big-O describes growth, not speed at your n. Insertion sort beats quicksort below a few dozen elements (which is why real sort implementations switch to it); a linear scan beats a hash map for a handful of keys because there is nothing to hash and the array sits in one cache line. The principal-level habit is asking 'what is n, and is it bounded?' before reaching for the fancier structure - and measuring when it matters."
     }
   ],
   debugging: [
@@ -497,6 +523,28 @@ const quizData = {
         "Add a regression test and run the full suite"
       ],
       explain: "Each step feeds the next: you cannot minimize what you cannot reproduce, hypotheses formed before minimizing chase too much surface area, and a fix applied before the hypothesis is confirmed is a guess. The regression test last proves the fix and locks it in."
+    },
+    {
+      level: "principal",
+      q: "3 a.m. page: a deploy from six hours ago is corrupting about 2% of new orders. You have already spotted the likely bug, and a proper fix would take roughly an hour. What do you do FIRST?",
+      options: [
+        ["Write the fix now - you know what is wrong and an hour is fast", false],
+        ["Roll back the deploy (or flag the feature off) to stop the damage, preserve logs and a sample of corrupted data, then root-cause calmly", true],
+        ["Attach a debugger to a production instance to confirm the hypothesis live", false],
+        ["Start writing the incident post-mortem while memory is fresh", false]
+      ],
+      explain: "Mitigate first, diagnose second. Every minute of debugging is another minute of corrupted orders, and fixes written at 3 a.m. under incident pressure have a high defect rate of their own - fixing forward often ships the second bug of the night. Rollback is the tested, one-step path to stopping impact; the interesting root-causing happens after the bleeding stops, on preserved evidence."
+    },
+    {
+      level: "principal",
+      q: "A race condition fires roughly once per million requests. Your service handles 5,000 requests per second. How often does 'almost never' actually happen?",
+      options: [
+        ["About once a month - safe to deprioritize", false],
+        ["About once a day", false],
+        ["About every three minutes", true],
+        ["Effectively never within the service's lifetime", false]
+      ],
+      explain: "At 5,000 requests/second you burn through a million requests every 200 seconds - so the 'one in a million' bug fires roughly every 3.3 minutes, hundreds of times a day. Scale converts rare into routine; this arithmetic is why principal engineers take probabilistic bugs seriously, and why idempotency and crash-safe design matter more as traffic grows."
     }
   ],
   compilers: [
@@ -574,6 +622,28 @@ const quizData = {
         "Code generation"
       ],
       explain: "Each stage consumes the previous stage's output: tokens feed the parser, the typed AST feeds IR lowering, and optimizations must run before codegen so the back end emits the improved program rather than the naive one."
+    },
+    {
+      level: "principal",
+      q: "This C code crashes in production, and inspection of the binary shows the compiler DELETED the null check: `int v = *p; if (p == NULL) return -1;` Why is that a legal optimization?",
+      options: [
+        ["It is a compiler bug - checks may never be removed", false],
+        ["Dereferencing p is undefined behavior if p is NULL, so after `*p` the compiler may assume p is non-null, which makes the check provably dead code", true],
+        ["At -O2 and above, all safety checks are traded away for speed", false],
+        ["The check was hoisted to runtime and fires only in debug builds", false]
+      ],
+      explain: "Undefined behavior does not mean 'the value might be wrong' - it means the compiler is allowed to assume UB never happens and optimize accordingly. Since `*p` already executed, p 'must be' non-null, so `p == NULL` folds to false and the branch is deleted. The defensive-looking code is defenseless because the check comes AFTER the use. This class of bug passes code review constantly; the fix is to check before dereferencing, and to build with UBSan in CI."
+    },
+    {
+      level: "principal",
+      q: "Your deployment tool's YAML config has grown if/else conditionals, loops via templating, and variable substitution. Teams now spend hours debugging config. What is the principal-level diagnosis?",
+      options: [
+        ["YAML was the wrong choice - JSON would have prevented this", false],
+        ["You have accidentally designed a programming language - one with no spec, no type checker, no debugger, and no tests. Either adopt a real language for that logic or freeze the config surface", true],
+        ["The templating engine needs more features so the configs get shorter", false],
+        ["Configuration should never differ between environments in the first place", false]
+      ],
+      explain: "Once config has control flow, it IS code - but code stripped of every tool that makes code manageable: no stack traces, no linter, no step-debugger, no unit tests, no IDE support. Adding template features deepens the hole. The honest options are to move the logic into a real language that generates plain data, or to hard-limit config to declarative key-value data. Recognizing 'we are building an accidental language' early is a distinctly principal-level instinct - this is how every infamous 10,000-line YAML system started."
     }
   ],
   porting: [
@@ -651,6 +721,30 @@ const quizData = {
         "Delete the legacy system"
       ],
       explain: "The facade must exist first - it is the routing point every later step depends on. Parity is proven before traffic moves so the shift is safe, and the legacy system is deleted only when it no longer serves anything, keeping a rollback path open the whole way."
+    },
+    {
+      level: "principal",
+      q: "Parity testing your rewrite reveals the legacy system rounds invoice tax UP where the written spec says round-half-even - and twelve years of customer invoices embed the legacy rounding. The new system implements the spec. What ships?",
+      options: [
+        ["The spec-correct behavior - it is by definition the right one", false],
+        ["Replicate the legacy rounding first (bug-for-bug compatibility), reach full parity, then change the rounding later as a separate, flagged, communicated decision", true],
+        ["Split behavior: new customers get the spec, existing customers keep legacy rounding forever", false],
+        ["Round whichever direction produces the smaller invoice, to be customer-friendly", false]
+      ],
+      explain: "A migration should change ONE thing at a time: the platform, not the behavior. If the port and the behavior change ship together, every parity diff becomes ambiguous ('bug or intended?'), rollback becomes unclear, and customers experience an unannounced billing change. Bug-for-bug compatibility first gives you a clean signal - zero diffs means the port is faithful - then the rounding change rides its own flag with its own communication and its own rollback. After twelve years, the 'bug' is the de-facto contract (Hyrum's Law again)."
+    },
+    {
+      level: "principal",
+      type: "multi",
+      q: "Select ALL reasons ground-up rewrites systematically blow their estimates.",
+      options: [
+        ["The legacy code encodes years of undocumented edge-case fixes that must be painfully rediscovered", true],
+        ["The old system keeps evolving during the rewrite, so parity is a moving target", true],
+        ["Second-system effect: every pent-up wish gets added to the scope 'while we are at it'", true],
+        ["New code always runs slower than old code", false],
+        ["Version control systems cannot track two codebases at once", false]
+      ],
+      explain: "Each ugly special case in the old code is usually a fix for a real incident nobody wrote down - reading the code as 'a mess we can do cleanly this time' undercounts exactly that knowledge. Meanwhile the target moves (the business does not pause) and scope inflates (Brooks' second-system effect). This is why incremental strangler-fig migrations, which preserve the embedded knowledge and deliver value continuously, usually beat big-bang rewrites."
     }
   ],
   tooling: [
@@ -728,6 +822,28 @@ const quizData = {
         "Package and deploy"
       ],
       explain: "Cheap, fast checks run first so obvious problems fail in seconds, not minutes: lint needs only source, build needs dependencies, tests need the build. Packaging and deployment come last - they should only ever see changes that survived every earlier gate."
+    },
+    {
+      level: "principal",
+      q: "Your CI suite has flaky tests, so the team turns on automatic 3x retry for any failing test. A year later, what is the most likely state of the suite?",
+      options: [
+        ["Flakiness is solved - retries absorbed the noise", false],
+        ["The suite is slower AND flakier: retries hid real race conditions, new flakes accumulated unpunished, and a green build no longer proves much", true],
+        ["The retries surfaced the root causes, so the tests became deterministic", false],
+        ["Only genuinely broken tests still fail, so signal quality improved", false]
+      ],
+      explain: "Blanket retries treat the symptom and delete the incentive to fix causes. Many 'flaky tests' are real concurrency bugs - sometimes in the product - and retry-until-green systematically buries them. New flakes join the pile because nothing hurts anymore, wall-clock time grows with every retry, and trust in green erodes until people override CI. The sustainable loop is: quarantine tracked flakes out of the blocking path, fix or delete them on a deadline, and keep retries rare and per-test with an owner."
+    },
+    {
+      level: "principal",
+      q: "Your remote build cache keys artifacts by the hash of each action's declared inputs. One build rule also reads an environment variable nobody declared. What failure mode have you created?",
+      options: [
+        ["Just cache misses - builds get slower but stay correct", false],
+        ["Cache poisoning: machines with different values of that variable produce different outputs under the SAME cache key, and whichever runs first publishes its artifact to every other machine", true],
+        ["None - environment variables are not build inputs", false],
+        ["The cache grows until the disk fills", false]
+      ],
+      explain: "The cache's correctness rests entirely on the key capturing ALL inputs - that property is called hermeticity. An undeclared input breaks it silently: the artifact built with value A gets served to machines expecting value B, and the wrong binary spreads fleet-wide, surviving rebuilds because the key still 'matches'. This is worse than having no cache, and it is why Bazel-style systems sandbox actions and hash file contents rather than trusting timestamps or the environment."
     }
   ]
 };
@@ -763,6 +879,7 @@ const TYPE_LABEL = { single: "single answer", multi: "select all that apply", or
 function qHeader(item, number) {
   const p = el("p", "q", `Q${number}. ${item.q} `);
   p.appendChild(el("span", "qtype", TYPE_LABEL[item.type || "single"]));
+  if (item.level === "principal") p.appendChild(el("span", "qtype qlevel", "principal level"));
   return p;
 }
 

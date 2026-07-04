@@ -33,6 +33,21 @@
     .verdict.bad { color:var(--warn); }
     .retry-btn { min-height:38px; border:1px solid var(--accent); border-radius:6px; padding:7px 14px; background:var(--accent); color:#ffffff; font-weight:700; font-size:14px; cursor:pointer; }
     .retry-btn:hover { background:var(--accent-strong); border-color:var(--accent-strong); }
+    .opt-check { display:flex; gap:10px; align-items:flex-start; min-height:40px; padding:8px 12px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); font-size:15px; cursor:pointer; }
+    .opt-check input { margin-top:4px; }
+    .opt-check.correct { border-color:var(--accent-strong); background:var(--accent-soft); color:var(--accent-strong); font-weight:700; }
+    .opt-check.missed { border-color:var(--accent-strong); border-style:dashed; color:var(--accent-strong); font-weight:700; }
+    .opt-check.incorrect { border-color:var(--warn); background:var(--warn-soft); color:var(--warn); font-weight:700; }
+    .check-btn { margin-top:10px; min-height:38px; border:1px solid var(--accent); border-radius:6px; padding:7px 14px; background:var(--accent); color:#ffffff; font-weight:700; font-size:14px; cursor:pointer; }
+    .check-btn:disabled { opacity:0.7; cursor:default; }
+    .order-list { display:grid; gap:8px; }
+    .order-item { display:flex; gap:10px; align-items:center; min-height:40px; padding:6px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); font-size:15px; }
+    .order-num { flex:0 0 auto; width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; background:var(--accent-soft); color:var(--accent-strong); font-size:12px; font-weight:700; }
+    .order-text { flex:1; }
+    .order-move { flex:0 0 auto; min-width:34px; min-height:30px; border:1px solid var(--line); border-radius:6px; background:var(--panel); color:var(--text); cursor:pointer; }
+    .order-move:disabled { opacity:0.4; cursor:default; }
+    .order-item.correct { border-color:var(--accent-strong); background:var(--accent-soft); }
+    .order-item.incorrect { border-color:var(--warn); background:var(--warn-soft); }
   </style>
 </head>
 <body>
@@ -57,14 +72,14 @@
       <p>
         Expert-level revision for C programming: systems development, memory management, and performance,
         plus the standard libraries and low-level tooling. Five sections each pair a short knowledge
-        summary and an ASCII diagram with thirty multiple-choice questions and explanations, for 150
-        questions in total.
+        summary and an ASCII diagram with thirty-three questions - single-answer, select-all-that-apply,
+        and step-ordering - and explanations, for 165 questions in total.
       </p>
     </section>
 
     <div class="score-bar" id="score-bar">
       <strong id="score-text">Score: 0 / 0</strong>
-      <p class="section-note" id="score-note">150 questions across 5 sections. Pick an answer to see the explanation.</p>
+      <p class="section-note" id="score-note">165 questions across 5 sections (single-answer, select-all, and ordering). Answer to see the explanation.</p>
       <button class="retry-btn" id="retry" type="button">Retry (reshuffle)</button>
     </div>
 
@@ -254,7 +269,10 @@ libc.a / libm.so  ────────────────────�
       { q: "What is the practical difference between ++i and i++?", choices: ["Both increment i, but ++i evaluates to the new value and i++ to the old value.", "++i is faster and i++ is slower for all types.", "They differ only for pointers.", "i++ does not modify i."], answer: 0, why: "For built-in scalar types the codegen is usually identical; the difference is the value the expression yields." },
       { q: "What is the effect of a data race on a shared object between threads?", choices: ["It is undefined behavior unless the accesses are synchronized or atomic.", "It is always safe if the variable is volatile.", "It merely produces a stale but valid value.", "It is defined to pick one thread's value."], answer: 0, why: "Use mutexes or _Atomic types; volatile does not make concurrent access well-defined." },
       { q: "What is the storage duration of a variable declared static inside a function?", choices: ["Static: it persists for the whole program and keeps its value across calls.", "Automatic: it is recreated each call.", "Allocated: it must be freed.", "Thread-local by default."], answer: 0, why: "It is initialized once and retains state between invocations, which also makes it non-reentrant." },
-      { q: "What does taking the address of a function-local array and returning it produce?", choices: ["A dangling pointer, because the array's lifetime ends when the function returns.", "A valid heap pointer the caller must free.", "A copy of the array.", "A compile error in standard C."], answer: 0, why: "To return array data, allocate it (malloc) or have the caller pass in a buffer." }
+      { q: "What does taking the address of a function-local array and returning it produce?", choices: ["A dangling pointer, because the array's lifetime ends when the function returns.", "A valid heap pointer the caller must free.", "A copy of the array.", "A compile error in standard C."], answer: 0, why: "To return array data, allocate it (malloc) or have the caller pass in a buffer." },
+      { type: "multi", q: "Which of the following are undefined behavior in C?", options: [["Signed integer overflow", true], ["Modifying a string literal", true], ["Reading an array out of bounds", true], ["Unsigned integer wraparound", false], ["Taking sizeof of a type", false]], why: "Unsigned overflow is defined to wrap and sizeof is a compile-time query; the other three are classic UB the optimizer may assume never happens." },
+      { type: "multi", q: "Which statements about volatile are true?", options: [["It forces each read/write to actually touch memory", true], ["It stops the compiler optimizing the access away", true], ["It is useful for memory-mapped registers and signal flags", true], ["It makes the access atomic across threads", false], ["It provides an inter-thread memory barrier", false]], why: "volatile controls elision and reordering of a single access only; use _Atomic or fences for atomicity and ordering." },
+      { type: "order", q: "Arrange these regions of a typical process address space from lowest to highest address.", ordered: [".text (code)", ".data / .bss (globals)", "heap (grows upward)", "stack (high addresses, grows down)"], why: "Code sits low, then initialized/zeroed globals, then the heap growing up, with the stack near the top growing down toward the heap." }
     ],
     memory: [
       { q: "What does malloc return, and what is in the returned memory?", choices: ["A pointer to uninitialized memory of the requested size, or NULL on failure.", "A pointer to zero-initialized memory, never NULL.", "A pointer that is always page-aligned.", "The number of bytes allocated."], answer: 0, why: "malloc does not initialize memory and can fail, so the return value must be checked before use." },
@@ -286,7 +304,10 @@ libc.a / libm.so  ────────────────────�
       { q: "What is an arena or pool allocator good for?", choices: ["Fast allocation of many objects with a bulk free, reducing per-object overhead and fragmentation.", "Guaranteeing every allocation is page-aligned.", "Replacing the need to ever free.", "Making single large allocations."], answer: 0, why: "Arenas trade fine-grained frees for speed and simplicity, common in parsers and request-scoped work." },
       { q: "What is the risk of an integer used as a size being signed and negative?", choices: ["Converting it to size_t yields a huge value, causing an enormous or failing allocation.", "malloc rejects it with a clear error.", "It allocates zero bytes safely.", "The compiler prevents it."], answer: 0, why: "Validate sizes as non-negative and within bounds before passing them to allocation functions." },
       { q: "What does double-freeing typically corrupt?", choices: ["The allocator's internal free-list metadata, which can be leveraged for exploits.", "Only the freed block's contents.", "The stack canary.", "Nothing; it is harmless."], answer: 0, why: "Modern allocators add some detection, but the behavior is still UB and must be avoided by clear ownership." },
-      { q: "How do you allocate a 2D grid of R rows and C cols contiguously?", choices: ["malloc(R * C * sizeof(elem)) and index as grid[r*C + c].", "Only an array of R separate malloc calls works.", "Use calloc(R, C) which returns a 2D pointer.", "2D allocation is impossible in C."], answer: 0, why: "A single contiguous block improves locality and needs just one free, unlike an array-of-pointers layout." }
+      { q: "How do you allocate a 2D grid of R rows and C cols contiguously?", choices: ["malloc(R * C * sizeof(elem)) and index as grid[r*C + c].", "Only an array of R separate malloc calls works.", "Use calloc(R, C) which returns a 2D pointer.", "2D allocation is impossible in C."], answer: 0, why: "A single contiguous block improves locality and needs just one free, unlike an array-of-pointers layout." },
+      { type: "multi", q: "Which of these are undefined behavior?", options: [["Calling free twice on the same pointer", true], ["Reading memory after it was freed", true], ["Reading past the end of a malloc'd block", true], ["Calling free(NULL)", false], ["Assigning realloc's result to a temporary first", false]], why: "free(NULL) is a safe no-op and the temporary-pointer pattern is exactly correct; the other three are UB (double free, use-after-free, out-of-bounds)." },
+      { type: "multi", q: "Which statements about calloc are true?", options: [["It zero-initializes the allocated memory", true], ["It guards against nmemb * size overflow", true], ["It takes element count and size as separate arguments", true], ["It can never return NULL", false]], why: "calloc(nmemb, size) both clears the block and checks the multiplication; like malloc it can still fail and return NULL." },
+      { type: "order", q: "Arrange the steps of the safe grow-a-buffer-with-realloc pattern.", ordered: ["Call realloc into a temporary pointer", "Check the temporary for NULL (old block still valid on failure)", "Assign the temporary back to your buffer pointer", "Use the possibly-moved buffer"], why: "Never assign realloc's result straight to your only pointer, or a NULL return leaks and loses the original block." }
     ],
     systems: [
       { q: "What is a file descriptor?", choices: ["A small non-negative integer that indexes a process's open file table.", "A pointer to a FILE structure.", "A disk block number.", "The size of a file in bytes."], answer: 0, why: "Descriptors 0, 1, 2 are stdin, stdout, stderr; higher-level FILE* streams wrap descriptors with buffering." },
@@ -318,7 +339,10 @@ libc.a / libm.so  ────────────────────�
       { q: "Why can unaligned access to a multi-byte value be a problem?", choices: ["On some architectures it faults or is slow; portable code uses memcpy into a properly typed variable.", "It always works with no cost.", "It changes endianness.", "It is a compile-time error everywhere."], answer: 0, why: "memcpy-based access avoids strict-aliasing and alignment issues when parsing byte buffers." },
       { q: "What does the close() return value being checked protect against?", choices: ["Detecting deferred write errors that surface only when the descriptor is closed.", "Preventing the file from reopening.", "Making close faster.", "Nothing; close never fails."], answer: 0, why: "For data integrity, especially over networks or with buffered writeback, fsync and a checked close matter." },
       { q: "What does the & (bitwise AND) with a mask like 0xFF accomplish?", choices: ["Extracts the low 8 bits of a value.", "Adds 255 to the value.", "Checks equality with 255.", "Negates the value."], answer: 0, why: "Masking and shifting are the basic tools for packing and unpacking fields in registers and protocols." },
-      { q: "What does the fsync() system call do?", choices: ["Flushes a file's buffered data (and needed metadata) to stable storage for durability.", "Closes the file descriptor.", "Locks the file against other writers.", "Maps the file into memory."], answer: 0, why: "Writes may sit in the page cache; fsync forces them to disk, which matters for crash-safety but is relatively expensive." }
+      { q: "What does the fsync() system call do?", choices: ["Flushes a file's buffered data (and needed metadata) to stable storage for durability.", "Closes the file descriptor.", "Locks the file against other writers.", "Maps the file into memory."], answer: 0, why: "Writes may sit in the page cache; fsync forces them to disk, which matters for crash-safety but is relatively expensive." },
+      { type: "multi", q: "Which are safe (async-signal-safe) to do inside a signal handler?", options: [["Call write()", true], ["Call _exit()", true], ["Assign to a volatile sig_atomic_t flag", true], ["Call printf()", false], ["Call malloc()", false]], why: "A handler can interrupt a non-reentrant call mid-update; printf and malloc are not async-signal-safe, so keep handlers to safe calls and flags." },
+      { type: "multi", q: "Which statements about file descriptors and I/O are true?", options: [["0, 1, 2 are stdin, stdout, stderr", true], ["read() returning 0 means end of file", true], ["write() may transfer fewer bytes than requested", true], ["A FILE* stream is a raw descriptor with no buffering", false]], why: "FILE* streams add user-space buffering over a descriptor; short reads/writes are normal and must be looped over." },
+      { type: "order", q: "Arrange the steps a shell takes to run a command with stdout redirected to a file.", ordered: ["fork() a child process", "In the child, open() the target file", "dup2() the file's descriptor onto fd 1 (stdout)", "execve() the command", "In the parent, waitpid() for the child"], why: "Redirection is set up in the child between fork and exec by pointing fd 1 at the file; the parent reaps the child." }
     ],
     performance: [
       { q: "Why is stride-one, sequential array access usually faster than scattered access?", choices: ["It uses full cache lines and enables hardware prefetching, reducing cache misses.", "It uses fewer CPU instructions per element.", "It avoids integer overflow.", "It disables branch prediction."], answer: 0, why: "Memory moves in cache lines; contiguous access amortizes each miss over many useful bytes and the prefetcher can stay ahead." },
@@ -350,7 +374,10 @@ libc.a / libm.so  ────────────────────�
       { q: "How can memory bandwidth become a scaling limit with many threads?", choices: ["Threads sharing the memory subsystem can saturate bandwidth, so adding cores stops helping.", "More threads always scale linearly.", "Bandwidth is per-core and never shared.", "Threads never touch memory."], answer: 0, why: "For bandwidth-bound kernels, reducing bytes moved (blocking, compression, better layout) helps more than more threads." },
       { q: "What does cache blocking (tiling) do for a matrix operation?", choices: ["Restructures the loops so each tile fits in cache and is reused before eviction.", "Splits work across disks.", "Removes the need for multiplication.", "Forces single-threaded execution."], answer: 0, why: "Tiling raises arithmetic intensity (work per byte loaded), turning a bandwidth-bound loop into a compute-bound one." },
       { q: "What is a hot/cold code split?", choices: ["Separating rarely executed paths (error handling) from hot paths to keep the instruction cache dense.", "Splitting data by temperature sensors.", "Running half the code on the GPU.", "A malloc strategy."], answer: 0, why: "Compilers move unlikely branches out of line; keeping hot loops compact improves I-cache and branch behavior." },
-      { q: "What is loop-invariant code motion?", choices: ["Hoisting a computation whose result does not change across iterations out of the loop so it runs once.", "Moving the loop to another thread.", "Reversing the loop's iteration order.", "Unrolling the loop body."], answer: 0, why: "Compilers do this automatically when they can prove the expression is invariant; aliasing or side effects can block it." }
+      { q: "What is loop-invariant code motion?", choices: ["Hoisting a computation whose result does not change across iterations out of the loop so it runs once.", "Moving the loop to another thread.", "Reversing the loop's iteration order.", "Unrolling the loop body."], answer: 0, why: "Compilers do this automatically when they can prove the expression is invariant; aliasing or side effects can block it." },
+      { type: "multi", q: "Which techniques help a memory-bandwidth-bound loop?", options: [["Cache blocking / tiling to reuse data", true], ["Contiguous, stride-one access", true], ["Struct-of-arrays layout for vectorization", true], ["Adding more threads that share the same memory bus", false]], why: "Reducing bytes moved and improving locality help; more threads cannot exceed the shared memory bandwidth once it is saturated." },
+      { type: "multi", q: "Which statements about restrict and aliasing are true?", options: [["restrict promises the pointer is the only access path to its object", true], ["Violating a restrict promise is undefined behavior", true], ["restrict can let the compiler avoid reloading values after a store", true], ["restrict guarantees the memory is cache-aligned", false]], why: "restrict is purely a no-aliasing contract that unlocks optimizations; it says nothing about alignment." },
+      { type: "order", q: "Arrange these storage locations from fastest to slowest typical access latency.", ordered: ["CPU registers", "L1 cache", "L2 cache", "L3 cache", "Main memory (DRAM)"], why: "Latency grows down the hierarchy; a DRAM access is on the order of 100x an L1 hit, which is why locality matters." }
     ],
     libraries: [
       { q: "Why is strcpy considered dangerous?", choices: ["It performs no bounds checking and overflows the destination if the source is too long.", "It is slower than a manual loop.", "It does not null-terminate.", "It only works on read-only strings."], answer: 0, why: "Prefer snprintf or carefully used bounded copies, and remember strncpy may not null-terminate on truncation." },
@@ -382,7 +409,10 @@ libc.a / libm.so  ────────────────────�
       { q: "Why should you check the return value of scanf or fread?", choices: ["They return how many items/bytes were successfully read, which may be fewer than requested on error or EOF.", "They always read exactly what you asked.", "Their return value is meaningless.", "They set the buffer to NULL on failure."], answer: 0, why: "Ignoring short reads leads to using uninitialized data; validate the count before trusting the buffer." },
       { q: "What is typically the purpose of a build tool like make or CMake?", choices: ["To describe how sources are compiled and linked and to rebuild only what changed.", "To run the program.", "To detect memory leaks.", "To format source code."], answer: 0, why: "Correct dependency tracking avoids stale objects; CMake also generates platform-specific build files." },
       { q: "What does linking against a static library (.a) versus a shared library (.so) change?", choices: ["A static library's code is copied into the executable; a shared library is loaded at run time and can be shared between programs.", "There is no difference.", "Static libraries load at run time.", "Shared libraries cannot export symbols."], answer: 0, why: "Shared libraries save memory and allow updates without relinking, but add a runtime dependency and load-time resolution." },
-      { q: "Why should error handling avoid ignoring the return value of malloc, open, or write?", choices: ["These calls can fail, and silently continuing leads to null dereferences, data loss, or security bugs.", "Their returns are always success.", "Checking them slows the program too much.", "The compiler checks them automatically."], answer: 0, why: "Robust C code treats every fallible call's return as data to validate, not decoration." }
+      { q: "Why should error handling avoid ignoring the return value of malloc, open, or write?", choices: ["These calls can fail, and silently continuing leads to null dereferences, data loss, or security bugs.", "Their returns are always success.", "Checking them slows the program too much.", "The compiler checks them automatically."], answer: 0, why: "Robust C code treats every fallible call's return as data to validate, not decoration." },
+      { type: "multi", q: "Which functions can overflow a buffer if used without care?", options: [["strcpy", true], ["strcat", true], ["gets", true], ["snprintf", false], ["fgets", false]], why: "strcpy, strcat, and gets have no destination bound; snprintf and fgets take a size and are the safer replacements." },
+      { type: "multi", q: "Which statements about the sanitizers are true?", options: [["ASan detects heap/stack buffer overflows and use-after-free", true], ["TSan detects data races between threads", true], ["UBSan detects signed overflow and invalid shifts", true], ["Valgrind requires recompiling with a special sanitizer flag", false]], why: "Valgrind runs on an unmodified binary (just slowly); ASan/TSan/UBSan are compile-time instrumentation." },
+      { type: "order", q: "Arrange the stages of building a C program from source to executable.", ordered: ["Preprocess (#include, macro expansion)", "Compile to assembly (syntax and type checks)", "Assemble to an object file", "Link objects and libraries into an executable"], why: "Syntax and type errors surface at compile time; an 'undefined reference' is a link-time error at the final stage." }
     ]
   };
 
@@ -412,37 +442,130 @@ libc.a / libm.so  ────────────────────�
         : `${state.total - state.answered} of ${state.total} questions remaining.`;
   }
 
-  function renderQuestion(container, item, number) {
+  function markAnswered(isCorrect) {
+    state.answered += 1;
+    if (isCorrect) state.correct += 1;
+    updateScore();
+  }
+
+  function showExplain(explain, isCorrect, why) {
+    const verdict = el("span", "verdict " + (isCorrect ? "good" : "bad"), isCorrect ? "Correct. " : "Incorrect. ");
+    explain.appendChild(verdict);
+    explain.appendChild(document.createTextNode(why));
+    explain.classList.add("show");
+  }
+
+  // Single best answer: click one option, scored immediately.
+  function renderSingle(container, item, number) {
     const card = el("article", "quiz-card");
     card.appendChild(el("p", "q", `Q${number}. ${item.q}`));
     const optionsBox = el("div", "options");
     const explain = el("div", "explain");
-
     const buttons = [];
     const opts = item.choices.map((text, i) => [text, i === item.answer]);
     for (const [text, isCorrect] of shuffle(opts)) {
       const btn = el("button", "", text);
       btn.type = "button";
       btn.addEventListener("click", () => {
-        state.answered += 1;
-        if (isCorrect) state.correct += 1;
         for (const b of buttons) {
           b.disabled = true;
           if (b.dataset.correct === "1") b.classList.add("correct");
         }
         if (!isCorrect) btn.classList.add("incorrect");
-        const verdict = el("span", "verdict " + (isCorrect ? "good" : "bad"), isCorrect ? "Correct. " : "Incorrect. ");
-        explain.appendChild(verdict);
-        explain.appendChild(document.createTextNode(item.why));
-        explain.classList.add("show");
-        updateScore();
+        showExplain(explain, isCorrect, item.why);
+        markAnswered(isCorrect);
       });
       btn.dataset.correct = isCorrect ? "1" : "0";
       buttons.push(btn);
       optionsBox.appendChild(btn);
     }
-
     card.appendChild(optionsBox);
+    card.appendChild(explain);
+    container.appendChild(card);
+  }
+
+  // Multiple response: tick every correct box, none of the wrong ones, then Check.
+  function renderMulti(container, item, number) {
+    const card = el("article", "quiz-card");
+    card.appendChild(el("p", "q", `Q${number}. ${item.q} (select all that apply)`));
+    const box = el("div", "options");
+    const explain = el("div", "explain");
+    const rows = [];
+    for (const [text, isCorrect] of shuffle(item.options)) {
+      const label = el("label", "opt-check");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      label.appendChild(cb);
+      label.appendChild(el("span", "", text));
+      rows.push({ label, cb, isCorrect });
+      box.appendChild(label);
+    }
+    const checkBtn = el("button", "check-btn", "Check answer");
+    checkBtn.type = "button";
+    checkBtn.addEventListener("click", () => {
+      let allRight = true;
+      for (const r of rows) {
+        r.cb.disabled = true;
+        if (r.isCorrect) {
+          r.label.classList.add(r.cb.checked ? "correct" : "missed");
+          if (!r.cb.checked) allRight = false;
+        } else if (r.cb.checked) {
+          r.label.classList.add("incorrect");
+          allRight = false;
+        }
+      }
+      checkBtn.disabled = true;
+      showExplain(explain, allRight, item.why);
+      markAnswered(allRight);
+    });
+    card.appendChild(box);
+    card.appendChild(checkBtn);
+    card.appendChild(explain);
+    container.appendChild(card);
+  }
+
+  // Ordering: reorder the shuffled steps with the arrows, then Check.
+  function renderOrder(container, item, number) {
+    const card = el("article", "quiz-card");
+    card.appendChild(el("p", "q", `Q${number}. ${item.q} (put the steps in order, then Check)`));
+    const list = el("div", "order-list");
+    const explain = el("div", "explain");
+    let order = shuffle(item.ordered.map((t, i) => i));
+    function redraw() {
+      list.innerHTML = "";
+      order.forEach((origIdx, pos) => {
+        const row = el("div", "order-item");
+        row.dataset.orig = String(origIdx);
+        row.appendChild(el("span", "order-num", String(pos + 1)));
+        row.appendChild(el("span", "order-text", item.ordered[origIdx]));
+        const up = el("button", "order-move", "▲");
+        up.type = "button";
+        up.disabled = pos === 0;
+        up.addEventListener("click", () => { const t = order[pos - 1]; order[pos - 1] = order[pos]; order[pos] = t; redraw(); });
+        const down = el("button", "order-move", "▼");
+        down.type = "button";
+        down.disabled = pos === order.length - 1;
+        down.addEventListener("click", () => { const t = order[pos + 1]; order[pos + 1] = order[pos]; order[pos] = t; redraw(); });
+        row.appendChild(up);
+        row.appendChild(down);
+        list.appendChild(row);
+      });
+    }
+    redraw();
+    const checkBtn = el("button", "check-btn", "Check order");
+    checkBtn.type = "button";
+    checkBtn.addEventListener("click", () => {
+      const correct = order.every((origIdx, pos) => origIdx === pos);
+      Array.prototype.forEach.call(list.children, (row, pos) => {
+        row.classList.add(Number(row.dataset.orig) === pos ? "correct" : "incorrect");
+        row.querySelectorAll(".order-move").forEach((b) => { b.disabled = true; });
+      });
+      checkBtn.disabled = true;
+      showExplain(explain, correct, item.why);
+      markAnswered(correct);
+    });
+    card.appendChild(list);
+    card.appendChild(checkBtn);
     card.appendChild(explain);
     container.appendChild(card);
   }
@@ -456,7 +579,9 @@ libc.a / libm.so  ────────────────────�
       const items = shuffle(quizData[quizBox.dataset.section]);
       items.forEach((item, i) => {
         state.total += 1;
-        renderQuestion(quizBox, item, i + 1);
+        if (item.type === "multi") renderMulti(quizBox, item, i + 1);
+        else if (item.type === "order") renderOrder(quizBox, item, i + 1);
+        else renderSingle(quizBox, item, i + 1);
       });
     }
     updateScore();

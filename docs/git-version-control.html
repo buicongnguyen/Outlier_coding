@@ -33,6 +33,21 @@
     .verdict.bad { color:var(--warn); }
     .retry-btn { min-height:38px; border:1px solid var(--accent); border-radius:6px; padding:7px 14px; background:var(--accent); color:#ffffff; font-weight:700; font-size:14px; cursor:pointer; }
     .retry-btn:hover { background:var(--accent-strong); border-color:var(--accent-strong); }
+    .opt-check { display:flex; gap:10px; align-items:flex-start; min-height:40px; padding:8px 12px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); font-size:15px; cursor:pointer; }
+    .opt-check input { margin-top:4px; }
+    .opt-check.correct { border-color:var(--accent-strong); background:var(--accent-soft); color:var(--accent-strong); font-weight:700; }
+    .opt-check.missed { border-color:var(--accent-strong); border-style:dashed; color:var(--accent-strong); font-weight:700; }
+    .opt-check.incorrect { border-color:var(--warn); background:var(--warn-soft); color:var(--warn); font-weight:700; }
+    .check-btn { margin-top:10px; min-height:38px; border:1px solid var(--accent); border-radius:6px; padding:7px 14px; background:var(--accent); color:#ffffff; font-weight:700; font-size:14px; cursor:pointer; }
+    .check-btn:disabled { opacity:0.7; cursor:default; }
+    .order-list { display:grid; gap:8px; }
+    .order-item { display:flex; gap:10px; align-items:center; min-height:40px; padding:6px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); font-size:15px; }
+    .order-num { flex:0 0 auto; width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; background:var(--accent-soft); color:var(--accent-strong); font-size:12px; font-weight:700; }
+    .order-text { flex:1; }
+    .order-move { flex:0 0 auto; min-width:34px; min-height:30px; border:1px solid var(--line); border-radius:6px; background:var(--panel); color:var(--text); cursor:pointer; }
+    .order-move:disabled { opacity:0.4; cursor:default; }
+    .order-item.correct { border-color:var(--accent-strong); background:var(--accent-soft); }
+    .order-item.incorrect { border-color:var(--warn); background:var(--warn-soft); }
   </style>
 </head>
 <body>
@@ -57,14 +72,14 @@
       <p>
         Expert-level revision for Git version control: repository management, branching strategies, and
         collaboration workflows, plus everyday operations and best practices. Five sections each pair a
-        short knowledge summary and an ASCII diagram with ten multiple-choice questions and explanations,
-        for 50 questions in total.
+        short knowledge summary and an ASCII diagram with thirteen questions - single-answer,
+        select-all-that-apply, and step-ordering - and explanations, for 65 questions in total.
       </p>
     </section>
 
     <div class="score-bar" id="score-bar">
       <strong id="score-text">Score: 0 / 0</strong>
-      <p class="section-note" id="score-note">50 questions across 5 sections. Pick an answer to see the explanation.</p>
+      <p class="section-note" id="score-note">65 questions across 5 sections (single-answer, select-all, and ordering). Answer to see the explanation.</p>
       <button class="retry-btn" id="retry" type="button">Retry (reshuffle)</button>
     </div>
 
@@ -218,7 +233,10 @@ recover after a bad reset:                       git reflog  →  git reset --ha
       { q: "What is a bare repository?", choices: ["A repository with no working tree, used as a shared/central remote to push to and pull from.", "A repository with no commits.", "A repository with no branches.", "A read-only clone."], answer: 0, why: "Server-side repos are bare because a checked-out working tree there would conflict with incoming pushes." },
       { q: "What is the difference between a lightweight and an annotated tag?", choices: ["An annotated tag is a full object with tagger, date, message, and can be signed; a lightweight tag is just a name pointing to a commit.", "They are identical.", "Lightweight tags can be signed but annotated cannot.", "Annotated tags cannot point to commits."], answer: 0, why: "Releases usually use annotated (or signed) tags so the tag carries metadata; tags are not pushed automatically." },
       { q: "What does `git gc` do?", choices: ["Cleans up and compresses the object database, removing unreachable objects and packing loose ones.", "Deletes all branches.", "Garbage-collects the working directory files.", "Removes remote-tracking branches."], answer: 0, why: "Git runs gc automatically at times; unreachable objects may still be recoverable from the reflog until it expires." },
-      { q: "What is a Git submodule?", choices: ["A separate repository embedded in a parent repo at a pinned commit.", "A branch inside another branch.", "A compressed archive of history.", "A backup of the index."], answer: 0, why: "The parent records the submodule's URL and exact commit; you must update submodules explicitly to move that pointer." }
+      { q: "What is a Git submodule?", choices: ["A separate repository embedded in a parent repo at a pinned commit.", "A branch inside another branch.", "A compressed archive of history.", "A backup of the index."], answer: 0, why: "The parent records the submodule's URL and exact commit; you must update submodules explicitly to move that pointer." },
+      { type: "multi", q: "Which statements about .gitignore are true?", options: [["It affects only untracked files", true], ["A file already tracked keeps being tracked even if it matches a pattern", true], ["git rm --cached stops tracking a committed file while keeping it on disk", true], ["It deletes matching files from your working directory", false]], why: "Ignoring is for untracked files; to stop tracking an already-committed file you must git rm --cached it." },
+      { type: "multi", q: "Which of these operations talk to a remote?", options: [["git clone", true], ["git fetch", true], ["git push", true], ["git commit", false], ["git add", false]], why: "commit and add are purely local (working tree, index, and local history); clone, fetch, and push exchange data with a remote." },
+      { type: "order", q: "Arrange the steps to start a new project and publish it to a remote.", ordered: ["git init", "git add (stage files)", "git commit", "git remote add origin <url>", "git push -u origin main"], why: "Initialize, stage, and commit locally, then connect a remote and push, setting the upstream with -u." }
     ],
     branch: [
       { q: "What is a branch in Git?", choices: ["A lightweight, movable pointer to a commit.", "A full copy of the repository files.", "A snapshot of the staging area.", "A remote server."], answer: 0, why: "Because a branch is just a ref, creating one is instant and cheap; the commit graph does the real work." },
@@ -230,7 +248,10 @@ recover after a bad reset:                       git reflog  →  git reset --ha
       { q: "What is a detached HEAD state?", choices: ["HEAD points directly at a commit rather than a branch, so new commits are not on any branch.", "A corrupted repository.", "A branch with no commits.", "A branch that was deleted remotely."], answer: 0, why: "Commits made while detached can be lost when you switch away unless you create a branch to keep them." },
       { q: "What characterizes trunk-based development?", choices: ["Everyone integrates small changes into one main branch frequently, using very short-lived branches or none.", "Many long-lived feature branches merged once a quarter.", "No use of a main branch.", "Every developer keeps a permanent personal branch."], answer: 0, why: "Frequent integration keeps merges small and pairs well with feature flags and continuous integration." },
       { q: "What is Git Flow?", choices: ["A branching model with long-lived main and develop branches plus feature, release, and hotfix branches.", "A single-branch workflow.", "A Git command that auto-merges.", "A hosting service."], answer: 0, why: "Git Flow suits scheduled releases but can be heavy; many teams prefer simpler trunk-based or GitHub-flow models." },
-      { q: "Why keep feature branches short-lived?", choices: ["The longer a branch diverges from main, the larger and riskier the eventual merge and conflicts become.", "Git deletes old branches automatically.", "Long branches use too much disk space.", "Short branches cannot have conflicts by definition."], answer: 0, why: "Frequent integration (or rebasing onto main) keeps a branch close to the mainline and easy to merge." }
+      { q: "Why keep feature branches short-lived?", choices: ["The longer a branch diverges from main, the larger and riskier the eventual merge and conflicts become.", "Git deletes old branches automatically.", "Long branches use too much disk space.", "Short branches cannot have conflicts by definition."], answer: 0, why: "Frequent integration (or rebasing onto main) keeps a branch close to the mainline and easy to merge." },
+      { type: "multi", q: "Which statements about git rebase are true?", options: [["It rewrites commit IDs", true], ["It can produce a linear history", true], ["It replays your commits onto a new base", true], ["It is safe to run on a shared, already-pushed branch", false]], why: "Rebase creates new commits, so keep it to local/unpublished work; rewriting shared history disrupts collaborators." },
+      { type: "multi", q: "Which describe a fast-forward merge?", options: [["No merge commit is created", true], ["The branch pointer simply moves forward", true], ["It requires the current branch to be an ancestor of the target", true], ["It always creates a commit with two parents", false]], why: "Fast-forward just advances the pointer when there is no divergence; a two-parent merge commit is the three-way case." },
+      { type: "order", q: "Arrange the steps to update a feature branch onto main using rebase.", ordered: ["git checkout feature", "git fetch origin", "git rebase origin/main", "Resolve conflicts and git rebase --continue", "git push --force-with-lease"], why: "Rebasing rewrites the branch's commits, so the safe publish is --force-with-lease, which refuses if the remote moved unexpectedly." }
     ],
     collab: [
       { q: "What is the difference between `git fetch` and `git pull`?", choices: ["fetch only downloads remote changes into remote-tracking branches; pull fetches and then merges (or rebases) into your branch.", "They are identical.", "fetch merges and pull only downloads.", "pull only works on the main branch."], answer: 0, why: "fetch is non-destructive to your work, letting you inspect changes before integrating them." },
@@ -242,7 +263,10 @@ recover after a bad reset:                       git reflog  →  git reset --ha
       { q: "What do the markers <<<<<<<, =======, and >>>>>>> indicate in a file?", choices: ["A conflict region: your side, the divider, and the other side's version.", "A syntax error in the code.", "A signed commit.", "A submodule boundary."], answer: 0, why: "You must edit out all three markers and keep the intended content before the merge can be committed." },
       { q: "What is a protected branch?", choices: ["A branch with rules such as no force-push, no deletion, and required reviews or passing CI before merge.", "A branch only the owner can see.", "A branch stored in a bare repo.", "A branch that cannot be checked out."], answer: 0, why: "Protecting main prevents accidental history rewrites and enforces review/quality gates." },
       { q: "When is `git pull --rebase` useful?", choices: ["When syncing with a shared branch and you want to replay your local commits on top, avoiding an extra merge commit.", "When you want to force-push.", "When deleting a branch.", "When creating a tag."], answer: 0, why: "It keeps history linear, but like any rebase it rewrites your local commit IDs before you push them." },
-      { q: "Why sync your feature branch with main frequently during collaboration?", choices: ["To surface and resolve conflicts in small increments instead of one large painful merge later.", "Because Git requires a daily merge.", "To reduce repository size.", "To avoid needing pull requests."], answer: 0, why: "Regular merges or rebases from main keep divergence small and integration smooth." }
+      { q: "Why sync your feature branch with main frequently during collaboration?", choices: ["To surface and resolve conflicts in small increments instead of one large painful merge later.", "Because Git requires a daily merge.", "To reduce repository size.", "To avoid needing pull requests."], answer: 0, why: "Regular merges or rebases from main keep divergence small and integration smooth." },
+      { type: "multi", q: "Which statements about git fetch and git pull are true?", options: [["fetch downloads changes without modifying your current branch", true], ["pull is fetch followed by merge or rebase", true], ["pull can be configured to rebase with --rebase", true], ["fetch automatically merges into your current branch", false]], why: "fetch is non-destructive; pull integrates. Only pull changes your working branch." },
+      { type: "multi", q: "Which steps correctly resolve a merge conflict?", options: [["Edit the file to the intended combined result", true], ["Remove the <<<<<<<, =======, and >>>>>>> markers", true], ["git add the resolved file, then commit", true], ["Delete the repository and re-clone it", false]], why: "A human edits the conflicted region, removes the markers, stages, and commits; re-cloning does not resolve anything." },
+      { type: "order", q: "Arrange the steps to contribute to a project via a fork and pull request.", ordered: ["Fork the repository on the platform", "git clone your fork locally", "Create a feature branch and commit changes", "git push the branch to your fork", "Open a pull request to the upstream repo"], why: "Forks let you propose changes without write access to the original; the pull request is the review gate." }
     ],
     ops: [
       { q: "What does `git commit --amend` do?", choices: ["Replaces the most recent commit with a new one, letting you fix its message or contents.", "Adds a second parent to the commit.", "Merges the last two commits on the remote.", "Creates a new branch."], answer: 0, why: "Because it rewrites the last commit, avoid amending a commit you have already pushed to a shared branch." },
@@ -254,7 +278,10 @@ recover after a bad reset:                       git reflog  →  git reset --ha
       { q: "What does `git bisect` help you do?", choices: ["Binary-search the commit history to find the commit that introduced a bug.", "Split a commit into two.", "Merge two branches by half.", "Bisect a file into halves."], answer: 0, why: "You mark a known-good and known-bad commit, and bisect checks out midpoints until it isolates the culprit." },
       { q: "What is the difference between `git diff` and `git diff --staged`?", choices: ["git diff shows unstaged changes (working tree vs index); --staged shows staged changes (index vs HEAD).", "They show the same thing.", "git diff shows staged changes only.", "--staged compares two branches."], answer: 0, why: "Understanding the working tree/index/HEAD trio is key to knowing which diff you are looking at." },
       { q: "What does `git log --oneline --graph --all` display?", choices: ["A compact, visual commit history showing branch and merge topology across all refs.", "Only the current file's changes.", "The list of remotes.", "The staged files."], answer: 0, why: "The graph view is invaluable for understanding how branches diverged and merged." },
-      { q: "How do you unstage a file while keeping its changes in the working tree?", choices: ["git restore --staged <file> (or git reset HEAD <file>).", "git checkout <file>.", "git rm <file>.", "git commit <file>."], answer: 0, why: "This moves the change out of the index back to unstaged; git restore <file> (without --staged) would instead discard the changes." }
+      { q: "How do you unstage a file while keeping its changes in the working tree?", choices: ["git restore --staged <file> (or git reset HEAD <file>).", "git checkout <file>.", "git rm <file>.", "git commit <file>."], answer: 0, why: "This moves the change out of the index back to unstaged; git restore <file> (without --staged) would instead discard the changes." },
+      { type: "multi", q: "Which statements about git reset are true?", options: [["--soft moves HEAD but keeps the index and working tree", true], ["--mixed resets the index but keeps the working tree", true], ["--hard resets the index and working tree, discarding changes", true], ["reset is the recommended way to undo a commit already pushed to a shared branch", false]], why: "For public history use git revert, which adds an undo commit; reset moves pointers and --hard is destructive." },
+      { type: "multi", q: "Which commands help you inspect or recover history?", options: [["git reflog", true], ["git bisect", true], ["git log --graph", true], ["git reset --hard", false]], why: "reflog recovers 'lost' commits and bisect/log inspect history; git reset --hard discards work rather than recovering it." },
+      { type: "order", q: "Arrange the steps of a git bisect session to find a bad commit.", ordered: ["git bisect start", "git bisect bad (mark the current broken commit)", "git bisect good <old-known-good-sha>", "Test each checkout and mark it good or bad", "git bisect reset when finished"], why: "Bisect binary-searches between a good and bad commit, converging in about log2(n) tests." }
     ],
     best: [
       { q: "Why should you avoid rewriting history on a shared/published branch?", choices: ["Force-pushing rewritten commits breaks everyone else's history and causes painful re-syncs and lost work.", "It makes the repo larger.", "Git forbids it entirely.", "It has no downside."], answer: 0, why: "Rewrite freely on local, unpushed work; once others may have based work on it, prefer revert over rewrite." },
@@ -266,7 +293,10 @@ recover after a bad reset:                       git reflog  →  git reset --ha
       { q: "What problem does Git LFS solve?", choices: ["It stores large binary files outside normal history using lightweight pointers, keeping the repo small.", "It compresses commit messages.", "It speeds up branching.", "It signs commits."], answer: 0, why: "Committing large binaries directly bloats every clone; LFS keeps the working files but offloads their storage." },
       { q: "What does a signed commit or tag provide?", choices: ["A cryptographic (GPG or SSH) signature verifying who authored it, improving trust and integrity.", "Faster pushes.", "Automatic conflict resolution.", "A smaller repository."], answer: 0, why: "Signing helps prove provenance, which matters for releases and supply-chain security." },
       { q: "Why prefer small, focused pull requests?", choices: ["They are easier and faster to review thoroughly, so they catch more bugs and merge sooner.", "They use less bandwidth.", "Git requires them to be small.", "Large PRs cannot be merged."], answer: 0, why: "Huge PRs get shallow reviews; splitting work into reviewable units improves quality and velocity." },
-      { q: "When is `git push --force-with-lease` safer than `git push --force`?", choices: ["It refuses to overwrite the remote if someone else pushed changes you have not seen, preventing you from clobbering their work.", "It is never safer.", "It skips authentication.", "It force-pushes to every branch at once."], answer: 0, why: "--force-with-lease checks the remote ref matches your expectation first, unlike a blind --force." }
+      { q: "When is `git push --force-with-lease` safer than `git push --force`?", choices: ["It refuses to overwrite the remote if someone else pushed changes you have not seen, preventing you from clobbering their work.", "It is never safer.", "It skips authentication.", "It force-pushes to every branch at once."], answer: 0, why: "--force-with-lease checks the remote ref matches your expectation first, unlike a blind --force." },
+      { type: "multi", q: "Which are good commit and history practices?", options: [["One logical, self-contained change per commit", true], ["A concise imperative summary line", true], ["Never commit secrets or credentials", true], ["Routinely force-push rewritten history to shared branches", false]], why: "Atomic commits and clear messages aid review and bisect; rewriting shared history breaks collaborators." },
+      { type: "multi", q: "Which are the safer or preferred choices?", options: [["Use git revert to undo a commit that is already public", true], ["Use git push --force-with-lease instead of --force", true], ["Keep pull requests small and focused", true], ["Commit large binaries directly instead of using Git LFS", false]], why: "revert is non-destructive on public history, --force-with-lease avoids clobbering others, small PRs review better, and LFS keeps large binaries out of history." },
+      { type: "order", q: "Arrange the steps to stop tracking a committed file while keeping it locally.", ordered: ["git rm --cached <file>", "Add the file or pattern to .gitignore", "git commit the change", "If it was a secret, rotate it (history still contains it)"], why: "Untracking does not scrub history, so a leaked credential must still be rotated." }
     ]
   };
 
@@ -296,37 +326,130 @@ recover after a bad reset:                       git reflog  →  git reset --ha
         : `${state.total - state.answered} of ${state.total} questions remaining.`;
   }
 
-  function renderQuestion(container, item, number) {
+  function markAnswered(isCorrect) {
+    state.answered += 1;
+    if (isCorrect) state.correct += 1;
+    updateScore();
+  }
+
+  function showExplain(explain, isCorrect, why) {
+    const verdict = el("span", "verdict " + (isCorrect ? "good" : "bad"), isCorrect ? "Correct. " : "Incorrect. ");
+    explain.appendChild(verdict);
+    explain.appendChild(document.createTextNode(why));
+    explain.classList.add("show");
+  }
+
+  // Single best answer: click one option, scored immediately.
+  function renderSingle(container, item, number) {
     const card = el("article", "quiz-card");
     card.appendChild(el("p", "q", `Q${number}. ${item.q}`));
     const optionsBox = el("div", "options");
     const explain = el("div", "explain");
-
     const buttons = [];
     const opts = item.choices.map((text, i) => [text, i === item.answer]);
     for (const [text, isCorrect] of shuffle(opts)) {
       const btn = el("button", "", text);
       btn.type = "button";
       btn.addEventListener("click", () => {
-        state.answered += 1;
-        if (isCorrect) state.correct += 1;
         for (const b of buttons) {
           b.disabled = true;
           if (b.dataset.correct === "1") b.classList.add("correct");
         }
         if (!isCorrect) btn.classList.add("incorrect");
-        const verdict = el("span", "verdict " + (isCorrect ? "good" : "bad"), isCorrect ? "Correct. " : "Incorrect. ");
-        explain.appendChild(verdict);
-        explain.appendChild(document.createTextNode(item.why));
-        explain.classList.add("show");
-        updateScore();
+        showExplain(explain, isCorrect, item.why);
+        markAnswered(isCorrect);
       });
       btn.dataset.correct = isCorrect ? "1" : "0";
       buttons.push(btn);
       optionsBox.appendChild(btn);
     }
-
     card.appendChild(optionsBox);
+    card.appendChild(explain);
+    container.appendChild(card);
+  }
+
+  // Multiple response: tick every correct box, none of the wrong ones, then Check.
+  function renderMulti(container, item, number) {
+    const card = el("article", "quiz-card");
+    card.appendChild(el("p", "q", `Q${number}. ${item.q} (select all that apply)`));
+    const box = el("div", "options");
+    const explain = el("div", "explain");
+    const rows = [];
+    for (const [text, isCorrect] of shuffle(item.options)) {
+      const label = el("label", "opt-check");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      label.appendChild(cb);
+      label.appendChild(el("span", "", text));
+      rows.push({ label, cb, isCorrect });
+      box.appendChild(label);
+    }
+    const checkBtn = el("button", "check-btn", "Check answer");
+    checkBtn.type = "button";
+    checkBtn.addEventListener("click", () => {
+      let allRight = true;
+      for (const r of rows) {
+        r.cb.disabled = true;
+        if (r.isCorrect) {
+          r.label.classList.add(r.cb.checked ? "correct" : "missed");
+          if (!r.cb.checked) allRight = false;
+        } else if (r.cb.checked) {
+          r.label.classList.add("incorrect");
+          allRight = false;
+        }
+      }
+      checkBtn.disabled = true;
+      showExplain(explain, allRight, item.why);
+      markAnswered(allRight);
+    });
+    card.appendChild(box);
+    card.appendChild(checkBtn);
+    card.appendChild(explain);
+    container.appendChild(card);
+  }
+
+  // Ordering: reorder the shuffled steps with the arrows, then Check.
+  function renderOrder(container, item, number) {
+    const card = el("article", "quiz-card");
+    card.appendChild(el("p", "q", `Q${number}. ${item.q} (put the steps in order, then Check)`));
+    const list = el("div", "order-list");
+    const explain = el("div", "explain");
+    let order = shuffle(item.ordered.map((t, i) => i));
+    function redraw() {
+      list.innerHTML = "";
+      order.forEach((origIdx, pos) => {
+        const row = el("div", "order-item");
+        row.dataset.orig = String(origIdx);
+        row.appendChild(el("span", "order-num", String(pos + 1)));
+        row.appendChild(el("span", "order-text", item.ordered[origIdx]));
+        const up = el("button", "order-move", "▲");
+        up.type = "button";
+        up.disabled = pos === 0;
+        up.addEventListener("click", () => { const t = order[pos - 1]; order[pos - 1] = order[pos]; order[pos] = t; redraw(); });
+        const down = el("button", "order-move", "▼");
+        down.type = "button";
+        down.disabled = pos === order.length - 1;
+        down.addEventListener("click", () => { const t = order[pos + 1]; order[pos + 1] = order[pos]; order[pos] = t; redraw(); });
+        row.appendChild(up);
+        row.appendChild(down);
+        list.appendChild(row);
+      });
+    }
+    redraw();
+    const checkBtn = el("button", "check-btn", "Check order");
+    checkBtn.type = "button";
+    checkBtn.addEventListener("click", () => {
+      const correct = order.every((origIdx, pos) => origIdx === pos);
+      Array.prototype.forEach.call(list.children, (row, pos) => {
+        row.classList.add(Number(row.dataset.orig) === pos ? "correct" : "incorrect");
+        row.querySelectorAll(".order-move").forEach((b) => { b.disabled = true; });
+      });
+      checkBtn.disabled = true;
+      showExplain(explain, correct, item.why);
+      markAnswered(correct);
+    });
+    card.appendChild(list);
+    card.appendChild(checkBtn);
     card.appendChild(explain);
     container.appendChild(card);
   }
@@ -340,7 +463,9 @@ recover after a bad reset:                       git reflog  →  git reset --ha
       const items = shuffle(quizData[quizBox.dataset.section]);
       items.forEach((item, i) => {
         state.total += 1;
-        renderQuestion(quizBox, item, i + 1);
+        if (item.type === "multi") renderMulti(quizBox, item, i + 1);
+        else if (item.type === "order") renderOrder(quizBox, item, i + 1);
+        else renderSingle(quizBox, item, i + 1);
       });
     }
     updateScore();

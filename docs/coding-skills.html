@@ -137,6 +137,24 @@ step 2                       [ 42 (61) 77  90 ]    61 = 61 → found
 
 window: 9 → 4 → 2 → 1        steps ≈ log2(n), the loop invariant is
                              "if present, target is inside [left..right]"</pre>
+      <p class="diagram-title">Stack vs heap — where a function call's data lives</p>
+      <pre class="diagram">main() calls f(), f() calls g() — every call pushes a frame, every return pops it
+
+  STACK (automatic, frame per call)             HEAP (survives the function)
+  ┌───────────────────────────┐
+  │ main   n=3, Obj* p ───────┼───────────▶ ┌─────────────────────┐
+  ├───────────────────────────┤             │ Obj from malloc/new │
+  │ f      locals, return addr│             │ lives until free /  │
+  ├───────────────────────────┤             │ delete / GC         │
+  │ g      locals   ◀── SP    │             └─────────────────────┘
+  └───────────────────────────┘
+        grows on call ↓
+
+g returns → its frame is gone instantly (just move SP — that's why stack is fast).
+two classic bugs fall out of the picture:
+  return &amp;local;        the frame vanished — dangling pointer into dead stack
+  forget free(p);       main returns, p (the POINTER) dies with the frame,
+                        the OBJECT stays on the heap forever — a leak</pre>
       <div class="quiz" data-section="coding"></div>
     </section>
 
@@ -263,6 +281,17 @@ parser         =
                1   *         flat token stream cannot express:
                   / \        the program means x = 1 + (2*y),
                  2   y       never (1+2) * y</pre>
+      <p class="diagram-title">Function-call flow: evaluating that AST (with y = 3)</p>
+      <pre class="diagram">eval(assign)                              each nested call pushes a
+│  eval(add)                              stack frame; each return
+│  │  eval(num 1)          → 1            pops one
+│  │  eval(mul)
+│  │  │  eval(num 2)       → 2            the indentation IS the call
+│  │  │  eval(var y)       → 3            stack over time - maximum
+│  │  └─ returns 2 * 3     → 6            depth = tree depth, which is
+│  └─ returns 1 + 6        → 7            why a deep-enough expression
+└─ stores x = 7                           overflows a recursive parser
+                                          or evaluator (stack overflow)</pre>
       <div class="quiz" data-section="compilers"></div>
     </section>
 
@@ -323,6 +352,20 @@ recorded real inputs ───+                                      +──&gt;
 
 any difference is a behavior change caught before users see it —
 including "bugs" the old system had that callers now depend on</pre>
+      <p class="diagram-title">Sequence: shadow traffic — testing the new system on real load, risk-free</p>
+      <pre class="diagram">client          facade             legacy (serves)        new (shadow)
+  │  request       │                     │                     │
+  ├───────────────►│                     │                     │
+  │                ├── forward ─────────►│                     │
+  │                ├── copy ──────────────────────────────────►│
+  │                │◄── response A ──────┤                     │
+  │                │◄── response B ──────────────────────────  ┤
+  │◄── A returned ─┤                     │                     │
+  │                └── log diff(A, B) ──► parity dashboard
+  ▼
+users ALWAYS receive the legacy answer, so the new system is
+exercised by 100% real traffic at zero user risk - when the diff
+rate reaches zero and stays there, flip the route (canary first)</pre>
       <div class="quiz" data-section="porting"></div>
     </section>
 

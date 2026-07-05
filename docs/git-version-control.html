@@ -108,10 +108,23 @@
       <pre class="diagram">working directory        staging area (index)        HEAD (last commit)
    your edited files   ── git add ──►   staged snapshot  ── git commit ──►  new commit
         ▲                                    ▲                                   |
-        └──── git restore <file> ───────────┘                                   |
+        └──── git restore &lt;file&gt; ───────────┘                                   |
         └──── git restore --source=HEAD (or checkout) ──────────────────────────┘
 
 remote (origin):   git fetch ──► remote-tracking refs      git push ──► publish commits</pre>
+      <p class="diagram-title">The object graph: what a commit actually points at</p>
+      <pre class="diagram">HEAD ──► refs/heads/main ──► commit e9a3f
+                               │ tree    41c2 ──► tree (root directory)
+                               │ parent  7b1d      ├── blob a1b2   README.md
+                               │ author, message   └── tree 9f80   src/
+                               ▼                        └── blob c3d4   main.c
+                             commit 7b1d
+                               │ parent 3e01 ─► ...
+tag v1.0 ──► commit 7b1d       ▼
+
+everything is content-addressed: same bytes → same hash → stored once.
+branches and tags are just pointers into this graph; "deleting" a commit
+only removes the pointer - the object survives until gc</pre>
       <div class="quiz" data-section="repo"></div>
     </section>
 
@@ -140,6 +153,18 @@ main ─A─B                            main ─A─B───────M   �
 feature  C─D                        feature  C─────D
                                     base = A (common ancestor); conflicts where
 merge → main just moves to D        both A..B and A..D changed the same lines</pre>
+      <p class="diagram-title">What rebase actually does to the graph</p>
+      <pre class="diagram">before                              after: git rebase main   (run on feature)
+
+main    ─A─B                        main    ─A─B
+              \                                   \
+feature        C─D                  feature        C'─D'   ← replayed COPIES:
+                                                            same diffs, NEW hashes
+
+history reads linear, but C and D still exist (reachable via reflog) -
+nothing points at them anymore. This is why rebasing a branch someone
+else has pulled breaks them: their C/D no longer match your C'/D',
+and their next pull tries to merge both lineages together</pre>
       <div class="quiz" data-section="branch"></div>
     </section>
 
@@ -168,6 +193,24 @@ merge → main just moves to D        both A..B and A..D changed the same lines<
    origin (your fork)  ◄──────────────────────────────────────────  local branch
 
 fetch = download only (safe)      pull = fetch + merge/rebase into current branch</pre>
+      <p class="diagram-title">Sequence: the life of a pull request</p>
+      <pre class="diagram">you (local)          origin (your fork)     upstream (project)    CI + reviewer
+  │ branch fix-bug          │                       │                   │
+  │ commit ... commit       │                       │                   │
+  ├── git push -u origin ──►│                       │                   │
+  │                         ├── open pull request ─►│                   │
+  │                         │                       ├── run checks ────►│
+  │                         │                       │◄─ review comments ┤
+  │ address feedback,       │                       │                   │
+  ├── push again ──────────►│  (the PR updates      │                   │
+  │                         │   automatically)      ├── re-run checks ─►│
+  │                         │                       │◄─ approve, green ─┤
+  │                         │                       │ merge into main   │
+  │◄─ git fetch upstream ───┼───────────────────────┤                   │
+  ▼  update local main, delete fix-bug
+
+pushing more commits to the same branch updates the open PR -
+review happens on the branch, merge happens on the server</pre>
       <div class="quiz" data-section="collab"></div>
     </section>
 
@@ -190,13 +233,29 @@ fetch = download only (safe)      pull = fetch + merge/rebase into current branc
       </div>
       <p class="diagram-title">git reset modes: what each one touches</p>
       <pre class="diagram">                         moves HEAD    resets index    resets working tree
-git reset --soft  <ref>      yes            no                 no      (changes stay staged)
-git reset --mixed <ref>      yes            yes                no      (changes stay, unstaged)
-git reset --hard  <ref>      yes            yes                yes     (changes DISCARDED)
+git reset --soft  &lt;ref&gt;      yes            no                 no      (changes stay staged)
+git reset --mixed &lt;ref&gt;      yes            yes                no      (changes stay, unstaged)
+git reset --hard  &lt;ref&gt;      yes            yes                yes     (changes DISCARDED)
 
 undo the last commit but keep the work staged:   git reset --soft HEAD~1
-unstage a file (keep edits):                     git restore --staged <file>
-recover after a bad reset:                       git reflog  →  git reset --hard <sha></pre>
+unstage a file (keep edits):                     git restore --staged &lt;file&gt;
+recover after a bad reset:                       git reflog  →  git reset --hard &lt;sha&gt;</pre>
+      <p class="diagram-title">Recovery flow: undoing a bad reset --hard with the reflog</p>
+      <pre class="diagram">oops:  git reset --hard HEAD~2        (two commits "vanish")
+
+before:   A─B─C─D  ◄─ main            after:    A─B  ◄─ main
+                                                    C─D   ← unreachable,
+                                                           but NOT deleted
+find them:                            point main back:
+$ git reflog                          $ git reset --hard HEAD@{1}
+  a1b2c3 HEAD@{0}: reset: --hard      (or the sha next to "commit: D")
+  d4e5f6 HEAD@{1}: commit: D    ◄──          │
+  789abc HEAD@{2}: commit: C                 ▼
+                                      A─B─C─D  ◄─ main   (all back)
+
+the reflog records every place HEAD has pointed on THIS machine;
+unreachable commits survive until reflog expiry + gc (~90 days) -
+after a bad reset, the worst move is panicking and making new commits</pre>
       <div class="quiz" data-section="ops"></div>
     </section>
 
@@ -227,6 +286,23 @@ recover after a bad reset:                       git reflog  →  git reset --ha
    amend, rebase -i, reset             use git revert (adds an undo commit)
                                        if you MUST: git push --force-with-lease
                                        (refuses if the remote moved unexpectedly)</pre>
+      <p class="diagram-title">Where hooks and server rules run: commit → push → merge</p>
+      <pre class="diagram">git commit                        git push                    server (shared repo)
+  │                                 │                              │
+  ├─► pre-commit hook               ├─► pre-push hook              │
+  │   (lint, format, fast tests)    │   (slower checks)            │
+  │   fail → commit ABORTED         │   fail → push ABORTED        │
+  ├─► commit-msg hook               └──── objects + refs ─────────►│
+  │   (message format)                                             ├─► pre-receive hook
+  │   fail → ABORTED                                               ├─► protected-branch rules
+  ▼                                                                ├─► required CI checks
+commit created (local only)                                        │   any fail → REJECTED
+                                                                   ▼
+                                                             refs updated / PR mergeable
+
+client hooks are advisory - git commit --no-verify skips them entirely.
+server-side rules and CI are the enforceable gate; that is why teams
+duplicate the important checks on both sides (fast feedback + hard floor)</pre>
       <div class="quiz" data-section="best"></div>
     </section>
   </main>

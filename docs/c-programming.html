@@ -122,6 +122,20 @@ high +------------------+
 
 automatic = lifetime tied to scope     static/global = whole program
 allocated (heap) = until you free()     dangling = pointer outliving object</pre>
+      <p class="diagram-title">Function call flow: what the stack does</p>
+      <pre class="diagram">int add(int a, int b) { return a + b; }
+int main(void)        { int s = add(2, 3); }
+
+call flow                              stack (grows down)
+main executing                         ┌ main's frame:  s = ?        ┐
+  │
+  │ call add(2, 3)                     ┌ main's frame:  s = ?        ┐
+  │   args → rdi, rsi (SysV ABI)       │ return address (into main)  │
+  │   return address pushed            └ add's frame:   a=2, b=3     ┘
+  │
+  │ add computes 5 → returns in rax    add's frame POPPED — its locals
+  ▼                                    are gone (returning &a would
+main resumes:  s = 5                   hand back a dangling pointer)</pre>
       <div class="quiz" data-section="language"></div>
     </section>
 
@@ -153,6 +167,24 @@ allocated (heap) = until you free()     dangling = pointer outliving object</pre
               free(p); ... free(p);   ──►  DOUBLE FREE (UB, heap corruption)
 
 safe habit:  free(p); p = NULL;   // free(NULL) is a no-op, *NULL faults cleanly</pre>
+      <p class="diagram-title">realloc data flow: growing a dynamic array safely</p>
+      <pre class="diagram">buf ──► [e0 e1 e2 e3]  cap 4, need a 5th element
+
+tmp = realloc(buf, 8 * sizeof *buf);      // tmp, NEVER buf = realloc(buf,...)
+        │
+   ┌────┴──────────────────────┐
+   │ room to grow in place?    │
+   └────┬─────────────────┬────┘
+        │ yes             │ no: new block, copy 4 elems, free old
+        ▼                 ▼
+  tmp == buf         tmp != buf  →  every stale copy of the OLD buf
+  (same address)     now DANGLES — re-derive pointers, never cache them
+        │                 │
+        └────────┬────────┘
+                 ▼
+  tmp == NULL?  allocation failed but the OLD block is STILL VALID —
+                assigning realloc's result straight to buf would have
+                leaked your only reference. Otherwise: buf = tmp; cap = 8;</pre>
       <div class="quiz" data-section="memory"></div>
     </section>
 
@@ -183,6 +215,21 @@ safe habit:  free(p); p = NULL;   // free(NULL) is a no-op, *NULL faults cleanly
   |                               |               status  (image replaced;
   v                               v                        does not return
 reap zombie, read exit status   continue                  on success)</pre>
+      <p class="diagram-title">Sequence: write() vs fsync() — when is data actually on disk?</p>
+      <pre class="diagram">user process              kernel (page cache)              disk
+     │  write(fd, buf, n)       │                            │
+     ├───── trap / syscall ────►│                            │
+     │    (user → kernel mode)  │ copy buf into page cache   │
+     │◄──── returns n ──────────┤ page marked dirty          │
+     │                          │                            │
+     │   "write succeeded" = data in kernel RAM, NOT on disk │
+     │                          │  ... writeback later ─────►│
+     │  fsync(fd)               │                            │
+     ├─────────────────────────►│ flush dirty pages ────────►│
+     │◄──── returns 0 ──────────┤◄──────── ack ──────────────┤
+     ▼
+durability point = fsync returning, not write returning —
+this ordering is the foundation of every database's crash safety</pre>
       <div class="quiz" data-section="systems"></div>
     </section>
 
@@ -214,6 +261,21 @@ SSD/disk   TBs             10us - ms
 
 goal: raise "work per byte loaded" (arithmetic intensity) so the working
 set stays high in the hierarchy - tiling/blocking, contiguous access, SoA.</pre>
+      <p class="diagram-title">False sharing: two threads, one cache line</p>
+      <pre class="diagram">long counters[2];   // thread 0 writes [0], thread 1 writes [1] — "independent"
+
+core 0                                   core 1
+  │ write counters[0]                       │ write counters[1]
+  ▼                                         ▼
+┌──────────────── one 64-byte cache line ─────────────────┐
+│  counters[0]  │  counters[1]  │        unused           │
+└──────────────────────────────────────────────────────────┘
+cache coherence (MESI) tracks whole LINES: each core's write
+invalidates the other core's copy → the line ping-pongs between
+cores and the "independent" counters run 10-100x slower
+
+fix — one line per thread:
+struct { _Alignas(64) long v; } counters[2];   // 64 bytes apart</pre>
       <div class="quiz" data-section="performance"></div>
     </section>
 
@@ -243,6 +305,23 @@ libc.a / libm.so  ────────────────────�
                                                                            |
    syntax/type errors: compiler        "undefined reference": linker  ◄────┘
    runtime bugs: ASan / TSan / UBSan / Valgrind on the built binary</pre>
+      <p class="diagram-title">Call flow through the PLT: how a libc call actually lands</p>
+      <pre class="diagram">FIRST call to printf (lazy binding)         EVERY LATER call
+main: call printf@plt                       main: call printf@plt
+        │                                           │
+        ▼                                           ▼
+  PLT stub: jmp *GOT[printf]                  PLT stub: jmp *GOT[printf]
+        │  GOT still points at the                  │  GOT now points at libc
+        ▼  dynamic-loader resolver                  ▼
+  ld.so: search libc.so for "printf",         printf in libc.so runs
+  PATCH GOT[printf] with its address          directly (one extra jmp,
+        │                                     no resolver ever again)
+        ▼
+  jump to the real printf
+
+this is why the first call to a shared-library function is slower,
+what LD_PRELOAD hooks (it wins the symbol search), and what
+-fno-plt / -Bsymbolic trade away</pre>
       <div class="quiz" data-section="libraries"></div>
     </section>
   </main>

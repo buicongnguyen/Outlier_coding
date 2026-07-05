@@ -79,7 +79,9 @@
         languages, porting and migration, and developer tooling. Each section has a short knowledge
         summary followed by practice questions in three certification-exam formats: single answer,
         select-all-that-apply (multiple response), and arrange-in-order (build list). Questions tagged
-        <em>code</em> show a real snippet - complete the missing line or find the buggy one. Questions
+        <em>code</em> show a real code or configuration snippet - complete the missing line or setting,
+        or find the buggy one - reaching down to bit tricks, struct layout, GDB, sanitizers,
+        x86-64 assembly, endianness, and cross-compilation. Questions
         tagged <em>principal level</em> test judgment - trade-offs, failure modes at scale, and
         second-order effects - rather than recall. Every question shows an explanation after you answer.
       </p>
@@ -87,7 +89,7 @@
 
     <div class="score-bar" id="score-bar">
       <strong id="score-text">Score: 0 / 0</strong>
-      <p class="section-note" id="score-note">55 questions across 5 sections. Pick an answer to see the explanation.</p>
+      <p class="section-note" id="score-note">65 questions across 5 sections. Pick an answer to see the explanation.</p>
       <button class="retry-btn" id="retry" type="button">Retry (reshuffle)</button>
     </div>
 
@@ -105,6 +107,12 @@
         <article class="term-card"><h3>Edge cases</h3><p>Empty input, single element, all-equal elements, negative numbers, integer overflow, unicode, null/None, and boundary indices (first, last, off-by-one). Enumerate them before writing the loop.</p></article>
         <article class="term-card"><h3>Invariants</h3><p>A property that holds before and after every loop iteration (for example, "left..right always brackets the answer" in binary search). Stating the invariant is the fastest way to argue a loop is correct.</p></article>
         <article class="term-card"><h3>Stability and in-place</h3><p>A stable sort preserves the relative order of equal keys (merge sort yes, plain quicksort/heapsort no). In-place means O(1) extra space. Both are common trade-off questions.</p></article>
+        <article class="term-card"><h3>Bit manipulation</h3><p>Treating integers as bit vectors: masks (<code>x &amp; 0xFF</code>), shifts (<code>x &lt;&lt; 3</code> = x*8), set/clear/test a bit, and tricks like <code>n &amp; (n-1)</code> clearing the lowest set bit. The vocabulary of flags, permissions, and hardware registers.</p></article>
+        <article class="term-card"><h3>Stack vs heap</h3><p>Stack: automatic, fast, freed on return, small (MBs), holds locals and call frames. Heap: manual or GC-managed, large, survives the function, costs allocation work and possible fragmentation. Knowing where a value lives explains lifetimes and many crashes.</p></article>
+        <article class="term-card"><h3>Cache line &amp; locality</h3><p>CPUs fetch memory in ~64-byte lines; sequential access is orders of magnitude faster than pointer-chasing. This is why arrays often beat linked lists in practice despite identical big-O.</p></article>
+        <article class="term-card"><h3>Alignment &amp; padding</h3><p>Types want addresses divisible by their size, so compilers insert invisible padding between struct fields. Field order changes struct size; misaligned access is slow on x86 and a crash on some ARM.</p></article>
+        <article class="term-card"><h3>Integer overflow</h3><p>Fixed-width integers wrap (unsigned, defined) or hit undefined behavior (signed C/C++). <code>lo + hi</code> in binary search and money-in-cents arithmetic are classic victims. Python ints never overflow; C ints always can.</p></article>
+        <article class="term-card"><h3>Amortized complexity</h3><p>Average cost per operation over a worst-case sequence: a dynamic array's push is O(1) amortized even though a single push occasionally pays O(n) to double capacity. Different from average case, which assumes input distribution.</p></article>
       </div>
       <p class="diagram-title">Choosing a structure by dominant operation</p>
       <pre class="diagram">need fast lookup by key?        ── yes ──&gt;  hash map          O(1) avg
@@ -146,6 +154,12 @@ window: 9 → 4 → 2 → 1        steps ≈ log2(n), the loop invariant is
         <article class="term-card"><h3>Root cause vs symptom</h3><p>Patching where the crash happens (for example a null check at the crash site) often hides the real defect upstream. Ask "why was this value wrong?" repeatedly until the answer is a design or logic decision.</p></article>
         <article class="term-card"><h3>Minimal fix</h3><p>The smallest change that corrects the root cause without reworking unrelated code. Small diffs are easier to review, safer to ship, and easier to revert.</p></article>
         <article class="term-card"><h3>Regression test</h3><p>A test that fails on the buggy code and passes after the fix. It documents the bug and guarantees the same defect cannot silently return.</p></article>
+        <article class="term-card"><h3>Core dump</h3><p>A snapshot of a crashed process's memory and registers, loaded post-mortem with <code>gdb app core</code>. Turns "it crashed overnight" into an inspectable stack, heap, and the exact faulting instruction.</p></article>
+        <article class="term-card"><h3>Breakpoint vs watchpoint</h3><p>A breakpoint stops at a code location; a watchpoint stops when a memory address is read or written - by anyone. Watchpoints catch corruption coming from code you would never think to break in.</p></article>
+        <article class="term-card"><h3>Sanitizers</h3><p>Compiler-inserted runtime checks: ASan (use-after-free, buffer overflows), TSan (data races), UBSan (signed overflow, bad casts). They catch the bug at the first bad access with a full stack trace, instead of at the delayed, distant crash.</p></article>
+        <article class="term-card"><h3>Debug symbols</h3><p>The <code>-g</code> mapping from machine code back to files, lines, and variable names. Stripped binaries give hex-only stack traces; keep the symbols (or a symbol server) so production crashes are readable.</p></article>
+        <article class="term-card"><h3>Structured logging</h3><p>Log key=value/JSON events with consistent fields (request id, user, duration) instead of prose. Queryable logs turn debugging from grepping stories into filtering data, and correlation ids stitch one request across services.</p></article>
+        <article class="term-card"><h3>Delta debugging</h3><p>Systematically shrinking a failing input or change-set by halves until only the essence remains - the algorithm behind minimizing repros, and what git bisect does to history.</p></article>
       </div>
       <p class="diagram-title">Debugging decision flow</p>
       <pre class="diagram">failure report
@@ -202,6 +216,12 @@ G ? ? ? ? ? ? B
         <article class="term-card"><h3>Type checking</h3><p>Part of semantic analysis: verifies that operations match operand types, resolves names against scopes, and infers types where the language allows. Catches whole classes of bugs before the program runs.</p></article>
         <article class="term-card"><h3>IR (intermediate representation)</h3><p>A simplified, machine-independent form of the program (for example LLVM IR, often in SSA form). It decouples front ends (languages) from back ends (CPUs) so optimizations are written once.</p></article>
         <article class="term-card"><h3>Optimization &amp; codegen</h3><p>Passes over the IR: constant folding, dead-code elimination, inlining, loop transforms. Codegen then selects machine instructions, allocates registers, and emits the final binary or bytecode.</p></article>
+        <article class="term-card"><h3>SSA form</h3><p>Static Single Assignment: every variable is assigned exactly once (<code>x2 = x1 + 1</code>), with phi-nodes merging branches. Makes data flow explicit, which is why LLVM IR and most modern optimizers live in SSA.</p></article>
+        <article class="term-card"><h3>Register allocation</h3><p>Mapping unlimited IR temporaries onto a handful of real CPU registers (classically via graph coloring); values that do not fit are "spilled" to the stack. One of the last and most performance-critical codegen steps.</p></article>
+        <article class="term-card"><h3>Calling convention &amp; ABI</h3><p>The contract below the language: which registers carry arguments (rdi, rsi, ... on x86-64 System V), who saves what, how structs return, stack alignment. The ABI is why binaries from different compilers can link - or mysteriously crash.</p></article>
+        <article class="term-card"><h3>Linker &amp; symbols</h3><p>Combines object files, resolving each undefined symbol to a definition in another object or library. "Undefined reference" is a LINK error, not a compile error - a missing library, not a missing header.</p></article>
+        <article class="term-card"><h3>Name mangling</h3><p>How C++ encodes namespaces, classes, and overloads into symbol names (<code>_ZN3foo3barEi</code>). The reason C++ libraries expose C APIs via <code>extern "C"</code>, and why mixed-compiler C++ linking is fragile.</p></article>
+        <article class="term-card"><h3>JIT vs AOT</h3><p>Ahead-of-time compiles once before running (C, Rust, Go); just-in-time compiles hot paths at runtime using observed behavior (JVM, V8), buying adaptive speed at the cost of warm-up and memory. Interpreters trade peak speed for simplicity and startup.</p></article>
       </div>
       <p class="diagram-title">Compiler pipeline</p>
       <pre class="diagram">source code
@@ -260,6 +280,12 @@ parser         =
         <article class="term-card"><h3>Behavior-parity testing</h3><p>Run the same inputs through old and new implementations and diff the outputs (golden-master / characterization tests). It captures actual behavior - including bugs callers depend on - not just documented behavior.</p></article>
         <article class="term-card"><h3>Strangler fig pattern</h3><p>Put a routing facade in front of the legacy system, then move one capability at a time to the new system until the old one has no traffic left and can be deleted. Avoids a big-bang rewrite.</p></article>
         <article class="term-card"><h3>Incremental rollout</h3><p>Feature flags, canary releases, and shadow traffic (send requests to both, serve from old, compare). Each limits blast radius and gives an instant rollback path.</p></article>
+        <article class="term-card"><h3>Endianness</h3><p>Byte order of multi-byte values: little-endian (x86, most ARM) stores the low byte first; big-endian is the network standard. Any code that shares raw bytes across machines - protocols, file formats - must convert explicitly (<code>ntohl</code>/<code>htonl</code>).</p></article>
+        <article class="term-card"><h3>Data models (LP64/LLP64)</h3><p>What <code>long</code> means per platform: 64-bit on Linux/macOS (LP64) but 32-bit on 64-bit Windows (LLP64). Code assuming <code>sizeof(long) == sizeof(void*)</code> ports wrong; fixed-width <code>int64_t</code> types exist for exactly this.</p></article>
+        <article class="term-card"><h3>ABI compatibility</h3><p>Whether separately compiled binaries still interoperate: struct layout, symbol names, calling conventions, exception handling. API compatibility means it recompiles; ABI compatibility means old binaries keep working without recompiling.</p></article>
+        <article class="term-card"><h3>Cross-compilation</h3><p>Building on one machine for another, using a toolchain named by target triplet (<code>arm-linux-gnueabihf-gcc</code>, arch-os-abi). How firmware, mobile, and embedded code is actually built - the host never runs the output.</p></article>
+        <article class="term-card"><h3>Conditional compilation</h3><p>Platform differences handled at build time: <code>#ifdef _WIN32</code>, Rust's <code>cfg(target_os)</code>, Python's <code>sys.platform</code>. Prefer feature detection over version/platform checks - test for the capability, not the label.</p></article>
+        <article class="term-card"><h3>Emulation &amp; compat layers</h3><p>Run the old binary unchanged instead of porting: QEMU emulates CPUs, Wine implements Windows APIs on Linux, Rosetta 2 translates x86-64 to ARM. Buys time or avoids a port entirely - at a performance and fidelity cost.</p></article>
       </div>
       <p class="diagram-title">Strangler-fig migration flow</p>
       <pre class="diagram">step 1: all traffic to legacy        step 2: facade routes per feature
@@ -315,6 +341,12 @@ including "bugs" the old system had that callers now depend on</pre>
         <article class="term-card"><h3>Package managers &amp; lockfiles</h3><p>npm, pip, cargo, NuGet resolve and fetch dependencies. The manifest says what you want (ranges); the lockfile pins the exact resolved versions so every machine and CI run installs identical bytes.</p></article>
         <article class="term-card"><h3>Continuous integration</h3><p>Every push triggers an automated pipeline: build, lint, test, package. Failures surface within minutes of the change that caused them, while the diff is small and fresh in the author's mind.</p></article>
         <article class="term-card"><h3>Profilers</h3><p>Measure where time and memory actually go. Sampling profilers periodically capture stacks (low overhead); instrumenting profilers time every call (exact but slower). Always measure before optimizing.</p></article>
+        <article class="term-card"><h3>Hermetic builds</h3><p>A build that depends only on declared inputs - no ambient environment variables, system libraries, or network. The precondition for trustworthy caching and for "same source, same binary" on every machine.</p></article>
+        <article class="term-card"><h3>Layer &amp; artifact caching</h3><p>Docker rebuilds layers top-down from the first changed instruction; CI caches restore by key. Both are only as correct as their inputs: order Dockerfile lines rarely-changing-first, and key caches on a content hash (lockfile), not on "latest".</p></article>
+        <article class="term-card"><h3>Semantic versioning</h3><p><code>major.minor.patch</code>: patch = fixes, minor = additive, major = breaking. Ranges like <code>^1.2.0</code> trust upstream's discipline - which is exactly what lockfiles insure against when that trust is misplaced.</p></article>
+        <article class="term-card"><h3>Static vs dynamic linking</h3><p>Static copies the library into the binary (self-contained, bigger, needs rebuild for library fixes); dynamic loads <code>.so</code>/<code>.dll</code> at runtime (shared, patchable, but version-skew "DLL hell"). Containers largely exist to tame the dynamic case.</p></article>
+        <article class="term-card"><h3>Reproducible builds</h3><p>Bit-identical output from identical source: pinned toolchains, fixed timestamps, sorted inputs, no embedded build paths. Lets anyone verify a shipped binary matches the audited source - a supply-chain security property.</p></article>
+        <article class="term-card"><h3>Symbol stripping</h3><p>Shipping binaries without debug info (<code>strip</code>) shrinks them and hides internals; the debug symbols are archived separately (symbol server, <code>.debug</code> packages) so production stack traces can still be resolved to file:line.</p></article>
       </div>
       <p class="diagram-title">A typical CI pipeline</p>
       <pre class="diagram">push / pull request
@@ -472,6 +504,30 @@ const quizData = {
         ["There is no bug; the function is correct", false]
       ],
       explain: "Mutating a sequence while iterating it by index is a classic trap: after pop(i), the element that slid into position i is never examined (so adjacent negatives survive), and because range(len(nums)) was computed from the original length, i eventually indexes past the shrunken list. The clean fix is to build a new list - return [x for x in nums if x >= 0] - or iterate over a copy."
+    },
+    {
+      mono: true,
+      q: "Complete the classic bit trick (C):",
+      code: "// true iff n is a power of two (1, 2, 4, 8, 16, ...)\nbool is_pow2(unsigned n) {\n    return n > 0 && ______;\n}",
+      options: [
+        ["(n & (n - 1)) == 0", true],
+        ["n % 2 == 0", false],
+        ["(n | (n - 1)) == 0", false],
+        ["(n ^ (n >> 1)) == 0", false]
+      ],
+      explain: "A power of two has exactly one bit set: 8 = 1000. Subtracting 1 flips everything below it: 7 = 0111. AND them and the single set bit disappears - 1000 & 0111 = 0 - but only for powers of two (6 & 5 = 0110 & 0101 = 0100 ≠ 0). n % 2 == 0 just tests evenness (6 passes, wrongly). n & (n-1) is worth knowing on its own: it clears the lowest set bit, the heart of popcount loops and bitset iteration."
+    },
+    {
+      mono: true,
+      q: "On 64-bit Linux (sizeof(int) == 4), struct A is 12 bytes because of alignment padding. Which field order makes it 8 bytes?",
+      code: "struct A { char a; int b; char c; };   // 12 bytes:\n// a _ _ _ | b b b b | c _ _ _\n//   pad3              pad3\n\nstruct B { ______ };                   // 8 bytes",
+      options: [
+        ["int b; char a; char c;", true],
+        ["char a; int b; char c;  (same order as A)", false],
+        ["char c; int b; char a;", false],
+        ["No reordering helps; padding depends only on the field types", false]
+      ],
+      explain: "int wants a 4-byte-aligned address, so each char followed by an int costs 3 padding bytes. Put the largest field first: b at offset 0, a at 4, c at 5, plus 2 tail-padding bytes to round the struct to alignment 4 - total 8. Ordering fields large-to-small minimizes padding; the rule matters at scale (millions of structs, cache lines) and in binary formats where layout IS the protocol."
     }
   ],
   debugging: [
@@ -594,6 +650,30 @@ const quizData = {
         ["open('errors.log')", false]
       ],
       explain: "pytest.raises fails the test if the exception does NOT occur - that is the regression guarantee. contextlib.suppress is the seductive wrong answer: it merely ignores the exception if it happens, so the test passes whether the code raises or not - a permanently green test that verifies nothing. Tests that cannot fail are worse than no tests, because they buy false confidence."
+    },
+    {
+      mono: true,
+      q: "Somewhere in a 50,000-line run, 'counter' turns to garbage - and the corrupting code is nowhere near counter's own logic. Complete the GDB command:",
+      code: "(gdb) ______ counter\nHardware watchpoint 1: counter\n(gdb) run\n...\nHardware watchpoint 1: counter\nOld value = 42\nNew value = -1094795586\nmain.c:217   buf[i] = 0xBE;    <- an out-of-bounds write in\n                                  completely unrelated code",
+      options: [
+        ["watch", true],
+        ["break", false],
+        ["print", false],
+        ["display", false]
+      ],
+      explain: "A watchpoint traps on any WRITE to the variable's memory address, no matter which code performs it - which is exactly what memory corruption needs, because the culprit (here a buffer overflow at buf[i]) has no source-level connection to counter. break stops at a chosen line (you would have to guess right), and print/display only show the value when you are already stopped. Hardware watchpoints cost almost nothing; they use CPU debug registers."
+    },
+    {
+      mono: true,
+      q: "A heap-use-after-free crashes production but never reproduces locally. Complete the compile command so the very first bad access is caught with full stack traces:",
+      code: "$ gcc -g ______ server.c -o server\n$ ./server\n==5901==ERROR: AddressSanitizer: heap-use-after-free\n    WRITE of size 8 at 0x602000000010\n    #0 handle_request server.c:88\nfreed by thread T0 here:\n    #0 close_session server.c:61",
+      options: [
+        ["-fsanitize=address", true],
+        ["-Wall -Wextra", false],
+        ["-O0", false],
+        ["-DDEBUG", false]
+      ],
+      explain: "ASan instruments every memory access at compile time and quarantines freed memory, so the program stops at the first use-after-free with BOTH stacks: where the dead memory was touched (line 88) and where it was freed (line 61) - the whole story in one report. -Wall is static analysis and cannot see runtime lifetimes; -O0 and -DDEBUG change nothing about memory checking. TSan and UBSan are the same idea for races and undefined behavior."
     }
   ],
   compilers: [
@@ -716,6 +796,30 @@ const quizData = {
         ["Line 3: left should start as None", false]
       ],
       explain: "10 - 3 - 2 must be (10-3)-2 = 5, but this code produces 10-(3-2) = 9: the recursive parse_expr greedily consumes 'b - c' as one right operand. Calling parse_term instead makes the while-loop build the tree left-to-right, giving left associativity. This is one of the most common real bugs in hand-rolled parsers, and it is invisible with + (associative) - it only corrupts -, /, and other non-associative operators."
+    },
+    {
+      mono: true,
+      q: "gcc -O2 compiles the multiply below to a single LEA - no imul needed. Complete the instruction (x86-64, argument in rdi/edi):",
+      code: "int f(int x) { return x * 9; }\n\nf:\n    ______\n    ret",
+      options: [
+        ["lea eax, [rdi + rdi*8]", true],
+        ["lea eax, [rdi*9]", false],
+        ["lea eax, [rdi + 9]", false],
+        ["lea eax, [9*rdi + rdi]", false]
+      ],
+      explain: "x86 addressing is base + index*scale, and the scale can only be 1, 2, 4, or 8 - so *9 is expressed as x + x*8. This is strength reduction: LEA does the multiply-and-add in the address unit, cheaper than imul and without touching flags. [rdi*9] is not encodable (9 is not a legal scale), and [rdi + 9] ADDS 9. Compilers build many small constant multiplies from LEA/shift combinations; reading them is a basic disassembly skill."
+    },
+    {
+      mono: true,
+      q: "The code compiles fine but the LINKER fails. Complete the fixed command:",
+      code: "$ gcc main.c -o app\n/usr/bin/ld: /tmp/ccKq3.o: undefined reference to `sqrt'\ncollect2: error: ld returned 1 exit status\n\n# main.c has  #include <math.h>  - so what is missing?\n$ gcc main.c -o app ______",
+      options: [
+        ["-lm", true],
+        ["-include math.h", false],
+        ["-Wall", false],
+        ["-static", false]
+      ],
+      explain: "The header gives the compiler sqrt's DECLARATION (its type), which is why compilation succeeded; the DEFINITION (actual machine code) lives in the math library libm, which the linker must be told to search with -lm. The error prefix '/usr/bin/ld:' says it all - this is the link stage. Compile and link are separate phases with separate failure modes: missing header = compile error, missing library = undefined reference."
     }
   ],
   porting: [
@@ -840,6 +944,30 @@ const quizData = {
         ["callback(getUser(id))", false]
       ],
       explain: "A shim must translate the whole calling convention, including failures: resolve → callback(null, user), reject → callback(err) - the Node error-first contract. callback(null, getUser(id)) hands callers a Promise instead of a user (silent wrong data), and return getUser(id) ignores the callback entirely so legacy callers never hear back. Half-translated conventions are how shims create bugs that only fire on the error path."
+    },
+    {
+      mono: true,
+      q: "A protocol frames every message with a 4-byte big-endian length. Complete the receive path so it works on every CPU:",
+      code: "uint32_t raw;\nrecv(sock, &raw, 4, MSG_WAITALL);   // peer sent: 00 00 00 01\nuint32_t len = ______;              // len must be 1",
+      options: [
+        ["ntohl(raw)", true],
+        ["raw", false],
+        ["byteswap32(raw)   /* unconditional swap */", false],
+        ["raw & 0xFF", false]
+      ],
+      explain: "Network byte order is big-endian; x86 and most ARM are little-endian, so using raw directly reads 00 00 00 01 as 0x01000000 = 16,777,216 - a 16 MB 'length' from a 1-byte message. ntohl means network-to-host-long: it swaps on little-endian hosts and is a no-op on big-endian ones, so the same source is correct everywhere. An unconditional swap breaks on big-endian hosts, and raw & 0xFF happens to work for tiny lengths only - the worst kind of almost-correct."
+    },
+    {
+      mono: true,
+      q: "You are building on an x86-64 laptop for a 32-bit ARM device (Raspberry Pi). Complete the command:",
+      code: "$ ______ -o app main.c\n$ file app\napp: ELF 32-bit LSB executable, ARM, EABI5,\n     dynamically linked, for GNU/Linux",
+      options: [
+        ["arm-linux-gnueabihf-gcc", true],
+        ["gcc -m32", false],
+        ["gcc -march=armv7-a", false],
+        ["gcc -O2 -o app-arm", false]
+      ],
+      explain: "Cross-compiling needs a cross toolchain, named by its target triplet: arm (architecture) - linux (OS) - gnueabihf (ABI, hard-float). gcc -m32 produces 32-bit x86, a different architecture entirely, and -march=armv7-a only selects a CPU model WITHIN the architecture your gcc was built for - a native x86 gcc cannot emit ARM at all. The device never compiles anything; the laptop builds, the Pi runs. This is how all firmware, mobile, and embedded software is built."
     }
   ],
   tooling: [
@@ -962,6 +1090,30 @@ const quizData = {
         ["npm audit fix", false]
       ],
       explain: "npm ci is built for CI: it wipes node_modules, installs exactly what package-lock.json pins, and FAILS if the manifest and lockfile disagree - so drift is caught instead of papered over. npm install may re-resolve versions and rewrite the lockfile, npm update deliberately moves versions forward, and npm audit fix mutates dependencies during a build. Reproducible pipelines install from the lockfile, never resolve anew."
+    },
+    {
+      mono: true,
+      q: "Complete the GitHub Actions cache setting so the cache is reused while dependencies are unchanged, and rebuilt exactly when they change:",
+      code: "- uses: actions/cache@v4\n  with:\n    path: ~/.npm\n    key: ${{ runner.os }}-node-______",
+      options: [
+        ["${{ hashFiles('package-lock.json') }}", true],
+        ["latest", false],
+        ["${{ github.sha }}", false],
+        ["${{ github.run_id }}", false]
+      ],
+      explain: "A cache key should change exactly when the cached content must change - and the dependency set is fully described by the lockfile, so its hash is the perfect key. 'latest' is one eternal key: the first cache ever saved gets reused forever, growing stale (the caching cousin of an undeclared dependency). github.sha and run_id change on every commit/run, so the cache never hits at all - 100% misses, just slower CI with extra upload time."
+    },
+    {
+      mono: true,
+      q: "Every source edit currently re-downloads all npm dependencies in this Docker build. Complete the missing line so 'npm ci' is cached until the lockfile itself changes:",
+      code: "FROM node:20\nWORKDIR /app\n______\nRUN npm ci\nCOPY . .\nCMD [\"node\", \"server.js\"]",
+      options: [
+        ["COPY package.json package-lock.json ./", true],
+        ["COPY . .", false],
+        ["RUN npm cache clean --force", false],
+        ["EXPOSE 3000", false]
+      ],
+      explain: "Docker reuses cached layers top-down until the first instruction whose input changed - everything after rebuilds. Copying ONLY the manifests first means the npm ci layer's input is just those two files, so editing source code leaves it cached; only a lockfile change re-installs. COPY . . in that slot makes every source edit invalidate the install layer - the exact bug being fixed. This rarely-changing-first ordering is the fundamental Dockerfile (and CI) caching pattern."
     }
   ]
 };

@@ -35,6 +35,8 @@
     .retry-btn:hover { background:var(--accent-strong); border-color:var(--accent-strong); }
     .qtype { display:inline-flex; align-items:center; margin-left:8px; padding:2px 9px; border-radius:999px; background:var(--accent-soft); color:var(--accent-strong); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.3px; white-space:nowrap; }
     .qtype.qlevel { background:var(--warn-soft); color:var(--warn); }
+    .qcode { margin:0 0 12px; padding:12px 14px; overflow-x:auto; background:var(--bg); border:1px solid var(--line); border-radius:6px; font-family:Consolas,Menlo,monospace; font-size:13.5px; line-height:1.5; color:var(--text); }
+    .options.mono button { font-family:Consolas,Menlo,monospace; font-size:13.5px; white-space:pre-wrap; }
     .options button.selected { border-color:var(--accent); background:var(--accent-soft); font-weight:700; }
     .options button.missed { border-style:dashed; border-color:var(--accent-strong); color:var(--accent-strong); font-weight:700; opacity:1; }
     .check-btn { margin-top:10px; min-height:36px; border:1px solid var(--accent); border-radius:6px; padding:6px 14px; background:var(--accent); color:#ffffff; font-weight:700; font-size:14px; cursor:pointer; }
@@ -77,14 +79,15 @@
         languages, porting and migration, and developer tooling. Each section has a short knowledge
         summary followed by practice questions in three certification-exam formats: single answer,
         select-all-that-apply (multiple response), and arrange-in-order (build list). Questions tagged
-        <em>principal level</em> test judgment - trade-offs, failure modes at scale, and second-order
-        effects - rather than recall. Every question shows an explanation after you answer.
+        <em>code</em> show a real snippet - complete the missing line or find the buggy one. Questions
+        tagged <em>principal level</em> test judgment - trade-offs, failure modes at scale, and
+        second-order effects - rather than recall. Every question shows an explanation after you answer.
       </p>
     </section>
 
     <div class="score-bar" id="score-bar">
       <strong id="score-text">Score: 0 / 0</strong>
-      <p class="section-note" id="score-note">45 questions across 5 sections. Pick an answer to see the explanation.</p>
+      <p class="section-note" id="score-note">55 questions across 5 sections. Pick an answer to see the explanation.</p>
       <button class="retry-btn" id="retry" type="button">Retry (reshuffle)</button>
     </div>
 
@@ -446,6 +449,29 @@ const quizData = {
         ["The worse-complexity version is already timing out on production inputs", false]
       ],
       explain: "Big-O describes growth, not speed at your n. Insertion sort beats quicksort below a few dozen elements (which is why real sort implementations switch to it); a linear scan beats a hash map for a handful of keys because there is nothing to hash and the array sits in one cache line. The principal-level habit is asking 'what is n, and is it bounded?' before reaching for the fancier structure - and measuring when it matters."
+    },
+    {
+      mono: true,
+      q: "Complete the binary search so it is correct even for very large arrays (C, int indices):",
+      code: "int lo = 0, hi = n - 1;\nwhile (lo <= hi) {\n    int mid = /* ??? */;\n    if (a[mid] == target) return mid;\n    if (a[mid] < target) lo = mid + 1;\n    else                 hi = mid - 1;\n}\nreturn -1;",
+      options: [
+        ["lo + (hi - lo) / 2", true],
+        ["(lo + hi) / 2", false],
+        ["(hi - lo) / 2", false],
+        ["lo + hi / 2", false]
+      ],
+      explain: "(lo + hi) / 2 looks right and IS right mathematically - but lo + hi can overflow int when both are large, producing a negative mid and an out-of-bounds read. This exact bug sat in the JDK's binary search for nine years. lo + (hi - lo) / 2 computes the same midpoint without the overflowing sum. The other two options are simply wrong arithmetic: (hi-lo)/2 forgets the offset, and lo + hi/2 divides only hi (precedence)."
+    },
+    {
+      q: "This Python function sometimes skips elements and can crash. Which line is the problem?",
+      code: "1  def remove_negatives(nums):\n2      for i in range(len(nums)):\n3          if nums[i] < 0:\n4              nums.pop(i)\n5      return nums",
+      options: [
+        ["Line 2: range(len(nums)) should be range(len(nums) - 1)", false],
+        ["Line 3: the comparison should be <= 0", false],
+        ["Line 4: pop() mutates the list during index-based iteration - every element after i shifts left, so the next element is skipped, and range() still runs to the old length, causing IndexError", true],
+        ["There is no bug; the function is correct", false]
+      ],
+      explain: "Mutating a sequence while iterating it by index is a classic trap: after pop(i), the element that slid into position i is never examined (so adjacent negatives survive), and because range(len(nums)) was computed from the original length, i eventually indexes past the shrunken list. The clean fix is to build a new list - return [x for x in nums if x >= 0] - or iterate over a copy."
     }
   ],
   debugging: [
@@ -545,6 +571,29 @@ const quizData = {
         ["Effectively never within the service's lifetime", false]
       ],
       explain: "At 5,000 requests/second you burn through a million requests every 200 seconds - so the 'one in a million' bug fires roughly every 3.3 minutes, hundreds of times a day. Scale converts rare into routine; this arithmetic is why principal engineers take probabilistic bugs seriously, and why idempotency and crash-safe design matter more as traffic grows."
+    },
+    {
+      q: "Production config bugs from this function are mysteriously hard to trace. Where is the problem?",
+      code: "1  def load_config(path):\n2      try:\n3          with open(path) as f:\n4              return json.load(f)\n5      except Exception:\n6          return {}",
+      options: [
+        ["Line 3: the file should be opened in binary mode for JSON", false],
+        ["Line 4: json.load is too slow for config files", false],
+        ["Line 6: every possible failure - missing file, bad permissions, malformed JSON, wrong path - is silently swallowed and replaced by an empty dict, so the error surfaces far away as 'weird defaults' with no traceback", true],
+        ["Line 2: try/except blocks are too expensive for startup code", false]
+      ],
+      explain: "The except-everything-return-default pattern erases the crime scene. A typo in the config path and a corrupted JSON file now look identical: the app just runs with {} and misbehaves somewhere downstream, hours of debugging away from the cause. Catch the SPECIFIC expected case if a default is genuinely valid (FileNotFoundError, maybe), let everything else raise loudly, and log whenever a fallback is taken."
+    },
+    {
+      mono: true,
+      q: "Complete this regression test so it actually verifies the bug stays fixed (pytest - mean([]) must raise StatisticsError):",
+      code: "def test_mean_rejects_empty_list():\n    with ______:\n        mean([])",
+      options: [
+        ["pytest.raises(StatisticsError)", true],
+        ["contextlib.suppress(StatisticsError)", false],
+        ["pytest.warns(UserWarning)", false],
+        ["open('errors.log')", false]
+      ],
+      explain: "pytest.raises fails the test if the exception does NOT occur - that is the regression guarantee. contextlib.suppress is the seductive wrong answer: it merely ignores the exception if it happens, so the test passes whether the code raises or not - a permanently green test that verifies nothing. Tests that cannot fail are worse than no tests, because they buy false confidence."
     }
   ],
   compilers: [
@@ -644,6 +693,29 @@ const quizData = {
         ["Configuration should never differ between environments in the first place", false]
       ],
       explain: "Once config has control flow, it IS code - but code stripped of every tool that makes code manageable: no stack traces, no linter, no step-debugger, no unit tests, no IDE support. Adding template features deepens the hole. The honest options are to move the logic into a real language that generates plain data, or to hard-limit config to declarative key-value data. Recognizing 'we are building an accidental language' early is a distinctly principal-level instinct - this is how every infamous 10,000-line YAML system started."
+    },
+    {
+      mono: true,
+      q: "Complete the AST evaluator for the \"add\" node:",
+      code: "def eval_node(node):\n    if node.kind == \"num\":\n        return node.value\n    if node.kind == \"add\":\n        return ______\n    if node.kind == \"mul\":\n        return eval_node(node.left) * eval_node(node.right)",
+      options: [
+        ["eval_node(node.left) + eval_node(node.right)", true],
+        ["node.left + node.right", false],
+        ["node.left.value + node.right.value", false],
+        ["eval_node(node.value)", false]
+      ],
+      explain: "An AST is recursive: the children of an add node can themselves be whole subtrees, like (1+2)*3 under another +. Only the recursive call reduces each child to a number first. node.left + node.right tries to add tree nodes, and node.left.value + node.right.value only works in the special case where both children happen to be leaf numbers - it crashes on any nested expression. Tree-walking recursion is THE core pattern of interpreters and compiler passes."
+    },
+    {
+      q: "This hand-written parser gives wrong answers for a - b - c. Which line is the problem?",
+      code: "1  # grammar: expr := term ('-' term)*\n2  def parse_expr(tokens):\n3      left = parse_term(tokens)\n4      while peek(tokens) == \"-\":\n5          next(tokens)\n6          left = (\"sub\", left, parse_expr(tokens))\n7      return left",
+      options: [
+        ["Line 4: the while should be an if", false],
+        ["Line 6: recursing into parse_expr for the right operand makes subtraction right-associative - a - b - c parses as a - (b - c), which is 'sub' of the WHOLE rest; the right operand should be parse_term", true],
+        ["Line 5: next() should be called before peek()", false],
+        ["Line 3: left should start as None", false]
+      ],
+      explain: "10 - 3 - 2 must be (10-3)-2 = 5, but this code produces 10-(3-2) = 9: the recursive parse_expr greedily consumes 'b - c' as one right operand. Calling parse_term instead makes the while-loop build the tree left-to-right, giving left associativity. This is one of the most common real bugs in hand-rolled parsers, and it is invisible with + (associative) - it only corrupts -, /, and other non-associative operators."
     }
   ],
   porting: [
@@ -745,6 +817,29 @@ const quizData = {
         ["Version control systems cannot track two codebases at once", false]
       ],
       explain: "Each ugly special case in the old code is usually a fix for a real incident nobody wrote down - reading the code as 'a mess we can do cleanly this time' undercounts exactly that knowledge. Meanwhile the target moves (the business does not pause) and scope inflates (Brooks' second-system effect). This is why incremental strangler-fig migrations, which preserve the embedded knowledge and deliver value continuously, usually beat big-bang rewrites."
+    },
+    {
+      q: "This function was ported line-by-line from C, where it returned 12 for mid_price(10, 15). The Python version now returns 12.5 and breaks downstream integer math. Which line is the problem?",
+      code: "1  # C original: int mid_price(int a, int b) { return (a + b) / 2; }\n2  def mid_price(a, b):\n3      return (a + b) / 2",
+      options: [
+        ["Line 3: Python's / is true division and yields a float; the C original truncated toward zero, so behavior parity needs // (floor division for non-negative values)", true],
+        ["Line 3: a + b can overflow in Python just like in C", false],
+        ["Line 2: the parameters need explicit int type annotations to force integer math", false],
+        ["There is no bug - 12.5 is the mathematically correct answer", false]
+      ],
+      explain: "The syntax ported perfectly; the SEMANTICS did not - exactly the silent-behavior-change trap. C's integer / truncates; Python 3's / always produces a float. Python ints never overflow (arbitrary precision), and annotations do not change runtime behavior. Note 12.5 being 'more correct' is irrelevant: a port's job is parity first - if better rounding is wanted, that is a separate, flagged decision after the port (bug-for-bug compatibility)."
+    },
+    {
+      mono: true,
+      q: "Legacy callers use fetchUser(id, callback) with (error, user) callbacks; the new API is getUser(id) returning a Promise. Complete the shim:",
+      code: "// legacy signature kept so 400 call sites need no change\nfunction fetchUser(id, callback) {\n    ______\n}",
+      options: [
+        ["getUser(id).then(u => callback(null, u), err => callback(err))", true],
+        ["callback(null, getUser(id))", false],
+        ["return getUser(id)", false],
+        ["callback(getUser(id))", false]
+      ],
+      explain: "A shim must translate the whole calling convention, including failures: resolve → callback(null, user), reject → callback(err) - the Node error-first contract. callback(null, getUser(id)) hands callers a Promise instead of a user (silent wrong data), and return getUser(id) ignores the callback entirely so legacy callers never hear back. Half-translated conventions are how shims create bugs that only fire on the error path."
     }
   ],
   tooling: [
@@ -844,6 +939,29 @@ const quizData = {
         ["The cache grows until the disk fills", false]
       ],
       explain: "The cache's correctness rests entirely on the key capturing ALL inputs - that property is called hermeticity. An undeclared input breaks it silently: the artifact built with value A gets served to machines expecting value B, and the wrong binary spreads fleet-wide, surviving rebuilds because the key still 'matches'. This is worse than having no cache, and it is why Bazel-style systems sandbox actions and hash file contents rather than trusting timestamps or the environment."
+    },
+    {
+      q: "Editing util.h does NOT trigger a rebuild, so developers keep debugging stale binaries. Where is the problem in this Makefile? (util.c includes util.h)",
+      code: "1  app: main.o util.o\n2  \tcc -o app main.o util.o\n3  main.o: main.c\n4  \tcc -c main.c\n5  util.o: util.c\n6  \tcc -c util.c",
+      options: [
+        ["Line 5: util.o declares util.c as its only prerequisite, so Make never learns that util.h is also an input - the rule should be util.o: util.c util.h (or use generated -MMD dependency files)", true],
+        ["Line 1: app must list util.h as a prerequisite too", false],
+        ["Line 2: the link command should also compile the sources", false],
+        ["Line 6: cc needs the -I flag to find header files", false]
+      ],
+      explain: "Make rebuilds a target only when a DECLARED prerequisite is newer - the dependency graph is only as honest as what you declare. util.h is a real input to compiling util.c, but the graph does not say so, so header edits leave util.o stale and the 'successful' build links old code. This is the undeclared-dependency trap from the knowledge cards made concrete; real projects generate header dependencies automatically (gcc -MMD -MP) instead of maintaining them by hand."
+    },
+    {
+      mono: true,
+      q: "Complete the CI step so it installs EXACTLY what the lockfile pins - reproducibly, on every run:",
+      code: "steps:\n  - uses: actions/checkout@v4\n  - run: ______\n  - run: npm test",
+      options: [
+        ["npm ci", true],
+        ["npm install", false],
+        ["npm update", false],
+        ["npm audit fix", false]
+      ],
+      explain: "npm ci is built for CI: it wipes node_modules, installs exactly what package-lock.json pins, and FAILS if the manifest and lockfile disagree - so drift is caught instead of papered over. npm install may re-resolve versions and rewrite the lockfile, npm update deliberately moves versions forward, and npm audit fix mutates dependencies during a build. Reproducible pipelines install from the lockfile, never resolve anew."
     }
   ]
 };
@@ -879,8 +997,16 @@ const TYPE_LABEL = { single: "single answer", multi: "select all that apply", or
 function qHeader(item, number) {
   const p = el("p", "q", `Q${number}. ${item.q} `);
   p.appendChild(el("span", "qtype", TYPE_LABEL[item.type || "single"]));
+  if (item.code) p.appendChild(el("span", "qtype", "code"));
   if (item.level === "principal") p.appendChild(el("span", "qtype qlevel", "principal level"));
   return p;
+}
+
+function attachCode(card, item) {
+  if (!item.code) return;
+  const pre = el("pre", "qcode");
+  pre.textContent = item.code;
+  card.appendChild(pre);
 }
 
 function finish(explain, ok, text) {
@@ -895,7 +1021,8 @@ function finish(explain, ok, text) {
 function renderSingle(container, item, number) {
   const card = el("article", "quiz-card");
   card.appendChild(qHeader(item, number));
-  const optionsBox = el("div", "options");
+  attachCode(card, item);
+  const optionsBox = el("div", "options" + (item.mono ? " mono" : ""));
   const explain = el("div", "explain");
 
   const buttons = [];
@@ -923,7 +1050,8 @@ function renderSingle(container, item, number) {
 function renderMulti(container, item, number) {
   const card = el("article", "quiz-card");
   card.appendChild(qHeader(item, number));
-  const optionsBox = el("div", "options");
+  attachCode(card, item);
+  const optionsBox = el("div", "options" + (item.mono ? " mono" : ""));
   const explain = el("div", "explain");
   const check = el("button", "check-btn", "Check answer");
   check.type = "button";

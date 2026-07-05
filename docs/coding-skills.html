@@ -292,6 +292,38 @@ parser         =
 │  └─ returns 1 + 6        → 7            why a deep-enough expression
 └─ stores x = 7                           overflows a recursive parser
                                           or evaluator (stack overflow)</pre>
+      <p class="diagram-title">Function call at machine level — what the calling convention pins down</p>
+      <pre class="diagram">r = add(2, 3)                        (x86-64 System V flavor)
+
+caller                                      callee: add
+  │ arg 1 → rdi,  arg 2 → rsi                  │
+  │ call add ── push return address ─────────▶ │ prologue: save caller's frame ptr
+  │             (jump to add's code)           │ body:     rax = rdi + rsi
+  │                                            │ epilogue: restore frame ptr
+  │ ◀──────── ret pops return address ──────── │           (stack exactly as found)
+  │ result r ← rax                             │
+
+the convention is the CONTRACT both sides compile against separately:
+which registers carry args, where the result goes, who saves which
+registers, how the stack stays aligned.  Two compilers that agree on
+it can link object files they have never seen — that agreement is
+the heart of the ABI.</pre>
+      <p class="diagram-title">Linking — how undefined symbols find their definitions</p>
+      <pre class="diagram">main.c ─compile─▶ main.o    defines: main       undefined: parse, printf
+parse.c ─compile─▶ parse.o  defines: parse      undefined: strlen
+
+linker matches every UNDEFINED symbol to exactly ONE definition:
+
+  main.o   parse  ─────────▶  parse.o  parse         ✓ (another object file)
+  main.o   printf ─────────▶  libc     printf        ✓ (library; shared libs
+  parse.o  strlen ─────────▶  libc     strlen        ✓  resolve again at load)
+
+  still unresolved  →  "undefined reference to `parse'"   LINK error:
+                       a missing .o or -l library — NOT a missing header
+  defined twice     →  "multiple definition"              collision
+
+then it merges sections (.text with .text, .data with .data), fixes every
+call and data address, and writes the executable.</pre>
       <div class="quiz" data-section="compilers"></div>
     </section>
 

@@ -97,6 +97,7 @@
       <a href="#compilers">Compilers</a>
       <a href="#porting">Porting</a>
       <a href="#tooling">Tooling</a>
+      <a href="#interview">Interview</a>
     </nav>
   </header>
 
@@ -119,7 +120,7 @@
 
     <div class="score-bar" id="score-bar">
       <strong id="score-text">Score: 0 / 0</strong>
-      <p class="section-note" id="score-note">65 questions across 5 sections. Pick an answer to see the explanation.</p>
+      <p class="section-note" id="score-note">77 questions across 6 sections. Pick an answer to see the explanation.</p>
       <button class="retry-btn" id="retry" type="button">Retry (reshuffle)</button>
     </div>
 
@@ -557,6 +558,37 @@ target is skipped, and you get a wrong "successful" build</pre>
 every install replays the lockfile → identical dependency tree
 on every developer machine and every CI run</pre>
       <div class="quiz" data-section="tooling"></div>
+    </section>
+
+    <!-- ============ 6. INTERVIEW CODING QUESTIONS ============ -->
+    <section id="interview" class="section">
+      <h2>6. Interview Coding Questions</h2>
+      <p class="section-note">
+        The problems companies actually ask, drawn from Glassdoor interview reports and
+        most-asked LeetCode lists: Two Sum, the missing number, in-place dedup, product-except-self,
+        valid parentheses, reversing a linked list, Kadane's algorithm, cycle detection, and LRU
+        cache. Interviewers grade the approach and the edge cases as much as the code -
+        say your assumptions out loud. For full worked solutions to these and more, see the
+        <a href="coding-interview.html">Coding Interview Questions and Answers</a> page.
+      </p>
+      <div class="term-grid">
+        <article class="term-card"><h3>Hash map: trade space for time</h3><p>"Have I seen this before?", pair-finding, and counting all become O(1) per element with a map or set. The single most common trick that turns O(n&sup2;) brute force into O(n).</p></article>
+        <article class="term-card"><h3>Two pointers</h3><p>Indices walking from both ends (palindromes, pair-sum in sorted arrays) or a slow writer chasing a fast reader (in-place dedup, partitioning). O(n) with O(1) extra space.</p></article>
+        <article class="term-card"><h3>Sliding window</h3><p>For "longest/shortest substring or subarray satisfying X": grow the right edge, shrink the left edge when the constraint breaks, track the best window seen. Each element enters and leaves once - O(n).</p></article>
+        <article class="term-card"><h3>Stack for nesting &amp; undo</h3><p>Matching brackets, parsing, backtracking, most-recent-first problems. Push what you may need to revisit; the top is always the innermost open context.</p></article>
+        <article class="term-card"><h3>Fast &amp; slow pointers</h3><p>Two runners at different speeds through a linked list: detect a cycle (they meet), find the midpoint (slow is there when fast finishes) - all O(1) space.</p></article>
+        <article class="term-card"><h3>Talk through edge cases</h3><p>Empty input, one element, all duplicates, negatives, overflow, null. Interviewers at top companies expect these handled unprompted - stating them early is worth as much as the code.</p></article>
+      </div>
+      <p class="diagram-title">Pattern chooser: what the problem statement is hinting at</p>
+      <pre class="diagram">"seen before? / count / find pair"        → hash map or set          O(n)
+sorted array + pair / in-place rewrite    → two pointers             O(n)
+"longest substring/subarray such that…"   → sliding window           O(n)
+brackets / nesting / most-recent-first    → stack                    O(n)
+linked list cycle / midpoint              → fast &amp; slow pointers     O(n), O(1) space
+top-k / streaming min or max              → heap                     O(n log k)
+"count the ways / min cost / can you…"    → DP or memoization        polynomial
+overlapping intervals                     → sort by start, then scan O(n log n)</pre>
+      <div class="quiz" data-section="interview"></div>
     </section>
   </main>
 
@@ -1291,6 +1323,140 @@ const quizData = {
         ["EXPOSE 3000", false]
       ],
       explain: "Docker reuses cached layers top-down until the first instruction whose input changed - everything after rebuilds. Copying ONLY the manifests first means the npm ci layer's input is just those two files, so editing source code leaves it cached; only a lockfile change re-installs. COPY . . in that slot makes every source edit invalidate the install layer - the exact bug being fixed. This rarely-changing-first ordering is the fundamental Dockerfile (and CI) caching pattern."
+    }
+  ],
+  interview: [
+    {
+      mono: true,
+      q: "Two Sum (the most-asked interview opener): return indices of the two numbers summing to target, in one pass. Complete the check:",
+      code: "def two_sum(nums, target):\n    seen = {}                    # value -> index\n    for i, x in enumerate(nums):\n        if ______:\n            return [seen[target - x], i]\n        seen[x] = i",
+      options: [
+        ["target - x in seen", true],
+        ["x in seen", false],
+        ["target in seen", false],
+        ["seen[target - x] is not None", false]
+      ],
+      explain: "For each x you ask: 'have I already seen the partner that completes the pair?' - that partner is target - x. The map trades O(n) space for O(1) lookups, collapsing the O(n²) brute force to one O(n) pass. Checking BEFORE inserting also handles target = 2x correctly (you will not pair x with itself). seen[target - x] without the 'in' test raises KeyError on a miss."
+    },
+    {
+      mono: true,
+      q: "Glassdoor classic: an array of 99 integers contains 1..100 with one number missing. Complete the O(n)-time, O(1)-space solution:",
+      code: "def missing(nums):        # holds 1..100, exactly one missing\n    n = 100\n    return ______ - sum(nums)",
+      options: [
+        ["n * (n + 1) // 2", true],
+        ["n * n // 2", false],
+        ["sum(range(n))", false],
+        ["2 ** n", false]
+      ],
+      explain: "Gauss's formula: 1+2+...+n = n(n+1)/2, so the expected total for 1..100 is 5050; subtract what is actually present and the difference IS the missing number. sum(range(n)) sums 0..99 - subtly wrong. The XOR variant (xor everything with 1..n; pairs cancel) is the follow-up answer for 'what if the sum could overflow?' - worth volunteering in C or Java."
+    },
+    {
+      mono: true,
+      q: "Glassdoor classic: remove duplicates from a SORTED array in place, O(1) extra space, returning the new length. Complete the writer's condition:",
+      code: "def dedup(a):             # a is sorted\n    if not a:\n        return 0\n    w = 1                     # next write position\n    for r in range(1, len(a)):\n        if ______:\n            a[w] = a[r]\n            w += 1\n    return w",
+      options: [
+        ["a[r] != a[w - 1]", true],
+        ["a[r] != a[w]", false],
+        ["a[r] == a[w - 1]", false],
+        ["r != w", false]
+      ],
+      explain: "Slow writer w chases fast reader r: keep a[r] only if it differs from the LAST KEPT value, a[w-1] - sortedness guarantees duplicates are adjacent, so one comparison suffices. This slow/fast two-pointer rewrite is the template for a whole family of in-place problems (move zeroes, partition). The empty-array guard is exactly the edge case interviewers watch for."
+    },
+    {
+      q: "Glassdoor classic: replace each element with the product of all OTHER elements - division is not allowed. What is the expected O(n) approach?",
+      options: [
+        ["Two passes: prefix products left-to-right into the output, then multiply by suffix products right-to-left", true],
+        ["Compute the total product once, then divide by each element", false],
+        ["Nested loops multiplying everything except index i", false],
+        ["Sort the array first, then multiply neighbors", false]
+      ],
+      explain: "result[i] = (product of everything left of i) x (product of everything right of i). Pass one stores the running prefix product in the output; pass two sweeps back accumulating the suffix product into it - O(n) time, O(1) extra beyond the output. Division is banned precisely because it breaks on zeros (and the interviewer knows it); nested loops are the O(n²) baseline you are expected to beat."
+    },
+    {
+      mono: true,
+      q: "Valid Parentheses: is every bracket in a \"()[]{}\"' string properly closed and nested? Complete the failing condition:",
+      code: "def is_valid(s):\n    pairs = {')': '(', ']': '[', '}': '{'}\n    stack = []\n    for ch in s:\n        if ch in \"([{\":\n            stack.append(ch)\n        elif ______:\n            return False\n    return not stack",
+      options: [
+        ["not stack or stack.pop() != pairs[ch]", true],
+        ["stack.pop() != pairs[ch]", false],
+        ["pairs[ch] not in stack", false],
+        ["ch != stack[-1]", false]
+      ],
+      explain: "A closer must match the MOST RECENT unmatched opener - exactly what the stack top holds. The 'not stack' guard is the interview point: on input like \")(\" a bare pop() raises on the empty stack. The final 'return not stack' catches leftover openers like \"(((\". Nesting problems are stack problems; this is the canonical demonstration."
+    },
+    {
+      q: "FizzBuzz - the classic screener. This version never prints \"FizzBuzz\". Where is the problem?",
+      code: "1  for i in range(1, 101):\n2      if i % 3 == 0:\n3          print(\"Fizz\")\n4      elif i % 5 == 0:\n5          print(\"Buzz\")\n6      elif i % 15 == 0:\n7          print(\"FizzBuzz\")\n8      else:\n9          print(i)",
+      options: [
+        ["Line 1: range(1, 101) skips 100", false],
+        ["Lines 2-7: the %15 branch is unreachable - any multiple of 15 already matched %3 on line 2; the MOST SPECIFIC test must come first", true],
+        ["Line 4: the elif should be a plain if", false],
+        ["There is no bug", false]
+      ],
+      explain: "15, 30, 45... are all divisible by 3, so line 2 captures them and prints \"Fizz\" before line 6 is ever considered. Order conditions from most specific to least: test % 15 first. This shadowing bug - a general case swallowing a specific one - appears far beyond FizzBuzz: exception handlers, route matchers, and match arms all share it. range(1, 101) is correct: it yields 1 through 100."
+    },
+    {
+      type: "order",
+      q: "Reverse a singly linked list iteratively. Put the LOOP BODY steps in the correct order (prev starts None, curr starts at head):",
+      steps: [
+        "nxt = curr.next   (save the rest of the list)",
+        "curr.next = prev  (reverse this node's link)",
+        "prev = curr       (advance prev onto this node)",
+        "curr = nxt        (advance curr into the saved rest)"
+      ],
+      explain: "Saving curr.next FIRST is the whole trick: the moment you flip curr.next backwards you lose your only path to the rest of the list unless it is already saved. Then the two advances slide the (prev, curr) window one node right. When curr runs off the end, prev is the new head. Interviewers use this to watch you manage pointer aliasing under order-of-operations pressure."
+    },
+    {
+      mono: true,
+      q: "Maximum Subarray (Kadane's algorithm): largest sum of any contiguous run, handling all-negative arrays. Complete the update:",
+      code: "def max_subarray(nums):\n    best = cur = nums[0]\n    for x in nums[1:]:\n        cur = ______\n        best = max(best, cur)\n    return best",
+      options: [
+        ["max(x, cur + x)", true],
+        ["max(cur, x)", false],
+        ["cur + x", false],
+        ["max(0, cur + x)", false]
+      ],
+      explain: "At each element the decision is binary: EXTEND the best run ending at the previous element (cur + x), or RESTART fresh at x - whichever is larger. That local decision provably yields the global optimum in O(n). max(0, cur+x) is the famous trap: it answers 0 for [-3, -1, -2] when the correct answer is -1 (the least-bad element) - initializing from nums[0] and restarting at x handles all-negative input naturally."
+    },
+    {
+      q: "Valid Anagram: do two strings contain exactly the same characters? Which solution is O(n) AND actually correct?",
+      options: [
+        ["Count character frequencies (array or hash map) and compare the counts", true],
+        ["Compare set(s1) == set(s2)", false],
+        ["Sort both strings and compare - also the optimal complexity", false],
+        ["Generate permutations of one string and search for the other", false]
+      ],
+      explain: "Counting is one pass per string: O(n) with a 26-slot array (or a map for unicode). The set trap is the interview point: sets discard MULTIPLICITY, so set(\"aab\") equals set(\"abb\") even though they are not anagrams. Sorting is correct but O(n log n), so not optimal - fine to offer first, then improve. Permutations are O(n!) - naming that complexity is part of the answer."
+    },
+    {
+      q: "Detect whether a linked list contains a cycle - in O(n) time and O(1) SPACE. Which approach?",
+      options: [
+        ["Floyd's tortoise and hare: slow moves 1 step, fast moves 2; if they ever meet, there is a cycle", true],
+        ["Store visited nodes in a hash set; a repeat means a cycle", false],
+        ["Compare node values to find a repeated value", false],
+        ["Count nodes and stop when the count exceeds the list length", false]
+      ],
+      explain: "Inside a cycle the fast pointer gains one position per step on the slow one, so it must catch it - a meeting proves the cycle with two pointers and zero extra memory. The hash set works in O(n) time but O(n) space; noticing the O(1)-space constraint IS the test. Values can legitimately repeat, and a possibly-cyclic list has no knowable 'length' to count against. Follow-up worth volunteering: after the meeting, reset one pointer to head and step both by 1 - they meet at the cycle's entry."
+    },
+    {
+      q: "Naive recursive fib(n) runs in exponential time (~O(1.6^n)) because subtree work is recomputed. Adding memoization makes it:",
+      options: [
+        ["O(n) time, O(n) space - each fib(k) is computed once and cached", true],
+        ["O(log n) time", false],
+        ["Still exponential, just with a smaller constant", false],
+        ["O(n²) time", false]
+      ],
+      explain: "Memoization collapses the exponential call TREE into a linear CHAIN: only n distinct subproblems exist, each solved once and thereafter answered from the cache in O(1). Noticing overlapping subproblems and caching them is the gateway move to all dynamic programming. Follow-ups worth knowing: the iterative two-variable version drops space to O(1), and fast-doubling genuinely achieves O(log n)."
+    },
+    {
+      q: "Design an LRU cache: get(key) and put(key, value) must BOTH be O(1), evicting the least-recently-used entry when full. Which pair of structures?",
+      options: [
+        ["A hash map pointing into a doubly linked list ordered by recency", true],
+        ["A sorted array with binary search", false],
+        ["A min-heap keyed by last-access timestamp", false],
+        ["A singly linked list with a tail pointer", false]
+      ],
+      explain: "The map gives O(1) key-to-node lookup; the doubly linked list gives O(1) move-to-front on each access and O(1) evict-from-tail - doubly, because unlinking a node requires reaching its predecessor instantly. A heap manages only O(log n) and cannot cheaply update an entry's priority on access; a singly linked list makes unlinking O(n). This is the most-asked design-a-data-structure question in industry interviews - real caches, connection pools, and page replacement work exactly this way."
     }
   ]
 };

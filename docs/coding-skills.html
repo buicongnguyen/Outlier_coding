@@ -120,7 +120,7 @@
 
     <div class="score-bar" id="score-bar">
       <strong id="score-text">Score: 0 / 0</strong>
-      <p class="section-note" id="score-note">77 questions across 6 sections. Pick an answer to see the explanation.</p>
+      <p class="section-note" id="score-note">81 questions across 6 sections. Pick an answer to see the explanation.</p>
       <button class="retry-btn" id="retry" type="button">Retry (reshuffle)</button>
     </div>
 
@@ -1457,6 +1457,52 @@ const quizData = {
         ["A singly linked list with a tail pointer", false]
       ],
       explain: "The map gives O(1) key-to-node lookup; the doubly linked list gives O(1) move-to-front on each access and O(1) evict-from-tail - doubly, because unlinking a node requires reaching its predecessor instantly. A heap manages only O(log n) and cannot cheaply update an entry's priority on access; a singly linked list makes unlinking O(n). This is the most-asked design-a-data-structure question in industry interviews - real caches, connection pools, and page replacement work exactly this way."
+    },
+    {
+      q: "Interview classic - Best Time to Buy and Sell Stock (one transaction): given daily prices, find the maximum profit. What is the one-pass O(1)-space solution?",
+      options: [
+        ["Track the minimum price seen so far; each day, update best profit with price - minSoFar", true],
+        ["Return max(prices) - min(prices)", false],
+        ["Try every buy/sell pair with two nested loops and keep the best", false],
+        ["Sort the prices and subtract the smallest from the largest", false]
+      ],
+      explain: "You must buy BEFORE you sell, so the only useful thing the past leaves you is the cheapest price so far - carry that one number, and each day's candidate profit is today's price minus it. max - min ignores time order: with prices [9, 1, 3] the global max (9) comes before the global min (1), reporting a trade you could never make - sorting has exactly the same flaw. The nested loop is the O(n^2) brute force this one-pass insight replaces; the same trick generalizes to Kadane's on the day-to-day price deltas."
+    },
+    {
+      mono: true,
+      q: "Interview classic - merge two sorted linked lists into one sorted list. Complete the comparison:",
+      code: "while (a && b) {\n    if (/* ??? */) { tail->next = a; a = a->next; }\n    else           { tail->next = b; b = b->next; }\n    tail = tail->next;\n}\ntail->next = a ? a : b;   // append the leftover run",
+      options: [
+        ["a->val <= b->val", true],
+        ["a->val >= b->val", false],
+        ["a->next != NULL", false],
+        ["a->val == b->val", false]
+      ],
+      explain: "Take the smaller head each round and the output stays sorted; choosing <= (rather than <) also keeps the merge STABLE - on ties the node from list a goes first, the property merge sort itself depends on. >= builds a descending merge; the other two never compare values at all. The last line is the step candidates forget: once one list empties, the other's remainder is already sorted - link it in whole. Starting with a dummy head node before this loop removes the empty-list special case."
+    },
+    {
+      type: "order",
+      q: "Arrange the steps of the approach interviewers expect when you are handed a whiteboard or screen-share coding problem.",
+      steps: [
+        "Restate the problem and clarify constraints (input size, duplicates, empty input, value ranges)",
+        "Work a small example by hand, including an edge case",
+        "State the brute-force solution and its complexity out loud",
+        "Improve it - better data structure or algorithm - before writing code",
+        "Write the code, narrating decisions as you go",
+        "Trace the code through the example and edge cases, then state final complexity"
+      ],
+      explain: "Interviewers grade the process as much as the code: candidates who jump straight to coding routinely solve the wrong problem or miss the empty-input case they never asked about. Stating the brute force first proves you can always deliver SOMETHING working and sets the baseline the optimization is measured against. The final trace catches off-by-ones before the interviewer does - finding your own bug scores points; having it found for you does not."
+    },
+    {
+      level: "principal",
+      q: "Timed online assessment, 20 minutes left, and you cannot recall the optimal O(n) trick for the last problem. Your brute force is O(n^2) but straightforward. What do you do?",
+      options: [
+        ["Write the clean brute force, make it pass the visible tests, note its complexity and the optimization direction in a comment, then bank the remaining time", true],
+        ["Spend the remaining time deriving the optimal solution - partial credit will reflect the attempt", false],
+        ["Write the optimal solution's outline from memory even if it may not compile or pass tests", false],
+        ["Skip the problem entirely to protect your average time per question", false]
+      ],
+      explain: "Assessments and interviews overwhelmingly score WORKING code first: a correct O(n^2) solution that passes tests beats a broken O(n) attempt on nearly every rubric, and many graders explicitly credit stating the better complexity even unimplemented. This mirrors production judgment - ship the correct simple thing, note the optimization, measure whether it is ever needed. Twenty minutes of derivation with nothing submitted is the only guaranteed-zero option besides skipping outright."
     }
   ]
 };

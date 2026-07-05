@@ -75,15 +75,16 @@
       <p>
         Expert-level revision for C programming: systems development, memory management, and performance,
         plus the standard libraries and low-level tooling. Five sections each pair a short knowledge
-        summary and an ASCII diagram with forty questions - single-answer, select-all-that-apply,
-        step-ordering, and code-insertion (SIMD, volatile, mmap, alignment, atomics, and more),
-        including principal-level judgment questions - and explanations, for 200 questions in total.
+        summary and an ASCII diagram with 40+ questions - single-answer, select-all-that-apply,
+        step-ordering, code-insertion, and read-two-versions best-practice questions (loop optimization,
+        SIMD, volatile, mmap, alignment, atomics, and more), including principal-level judgment questions
+        - and explanations, for 215 questions in total.
       </p>
     </section>
 
     <div class="score-bar" id="score-bar">
       <strong id="score-text">Score: 0 / 0</strong>
-      <p class="section-note" id="score-note">200 questions across 5 sections (single-answer, select-all, ordering, code-insertion, and principal-level judgment). Answer to see the explanation.</p>
+      <p class="section-note" id="score-note">215 questions across 5 sections (single-answer, select-all, ordering, code-insertion, compare-the-snippets, and principal-level judgment). Answer to see the explanation.</p>
       <button class="retry-btn" id="retry" type="button">Retry (reshuffle)</button>
     </div>
 
@@ -155,6 +156,8 @@ main resumes:  s = 5                   hand back a dangling pointer)</pre>
         <article class="term-card"><h3>Overflow-safe sizing</h3><p>size_t is unsigned and wraps silently, so check count against SIZE_MAX/element_size (or use calloc) before multiplying to avoid a tiny allocation and a heap overflow.</p></article>
         <article class="term-card"><h3>Aligned allocation</h3><p><code>malloc</code> aligns to <code>max_align_t</code>; for stronger alignment (SIMD, DMA, page) use <code>aligned_alloc</code> or <code>posix_memalign</code>. Aligned SIMD loads fault on a misaligned pointer.</p></article>
         <article class="term-card"><h3>Arenas &amp; pools</h3><p>Bump/pool allocators hand out many objects and free them together, cutting per-object overhead and fragmentation - at the cost of coarse-grained, all-at-once lifetime.</p></article>
+        <article class="term-card"><h3>False sharing</h3><p>Two hot fields written by different threads that land on the same cache line ping-pong that line between cores, serializing the writes even with no logical conflict. Pad or align each to its own 64-byte line (<code>alignas(64)</code>) to remove the contention.</p></article>
+        <article class="term-card"><h3>Struct member order</h3><p>The compiler pads between members to satisfy each type's alignment, so field order changes a struct's size. Order members widest-to-narrowest to minimize padding; packed structs drop padding but create misaligned members that are slow or undefined to access through a pointer.</p></article>
       </div>
       <p class="diagram-title">Heap block lifecycle and the classic bugs</p>
       <pre class="diagram">p = malloc(n) ──► [ live block ]  ── use p ──►  free(p) ──► [ reclaimed ]
@@ -249,6 +252,8 @@ this ordering is the foundation of every database's crash safety</pre>
         <article class="term-card"><h3>restrict and inlining</h3><p>restrict lets the compiler assume no aliasing and keep values in registers; inlining removes call overhead and exposes the body to further optimization.</p></article>
         <article class="term-card"><h3>Loop unrolling</h3><p>Doing several elements per iteration cuts loop-control overhead (the counter test and branch) and exposes independent work the CPU can pipeline; overdoing it bloats the instruction cache.</p></article>
         <article class="term-card"><h3>SIMD &amp; intrinsics</h3><p>Vector types like <code>__m128</code> and intrinsics (<code>_mm_load_ps</code>, <code>_mm_add_ps</code>) apply one operation to 4+ lanes at once. They want contiguous, aligned, branch-free inner loops.</p></article>
+        <article class="term-card"><h3>Multiple accumulators</h3><p>A single <code>sum += a[i]</code> is one dependency chain bounded by add latency; several partial accumulators let independent adds pipeline and combine at the end. Best for reductions over large arrays - but reordering floating-point adds changes rounding, so it needs <code>-ffast-math</code> or explicit acceptance.</p></article>
+        <article class="term-card"><h3>Auto-vectorization</h3><p>Simple, alias-free loops vectorize automatically under <code>-O3 -march=native</code>; confirm with <code>-fopt-info-vec</code>. Aliasing, data-dependent branches, and loop-carried dependencies silently block it - annotate with <code>restrict</code> and keep the body straight-line.</p></article>
       </div>
       <p class="diagram-title">Memory hierarchy: capacity grows, latency grows</p>
       <pre class="diagram">          size            approx latency
@@ -414,7 +419,19 @@ what LD_PRELOAD hooks (it wins the symbol search), and what
       { type: "code", q: "Which line belongs in the blank to grow buf without leaking it on failure?", code: `/* grow buf to n bytes; keep the old buffer if realloc fails */\n@@\nif (!tmp) return -1;      /* buf is still valid here */\nbuf = tmp;`, choices: ["char *tmp = realloc(buf, n);", "buf = realloc(buf, n);", "char *tmp = malloc(n);", "realloc(buf, n);"], answer: 0, why: "Assigning realloc's result to a temporary lets you detect NULL without losing the original block; 'buf = realloc(buf, n)' leaks buf when realloc returns NULL." },
       { type: "code", q: "Which line allocates a 16-byte-aligned buffer of n floats suitable for aligned SIMD loads?", code: `float *buf;\n@@   /* need 16-byte alignment for _mm_load_ps */`, choices: ["posix_memalign((void**)&buf, 16, n * sizeof *buf);", "buf = malloc(n * sizeof *buf);", "buf = malloc(16);", "buf = calloc(n, 16);"], answer: 0, why: "posix_memalign returns a 16-byte-aligned block for aligned SIMD; plain malloc only guarantees max_align_t alignment, and the others allocate the wrong size." },
       { type: "code", q: "Which allocation stays correct even if the element type T is later changed?", code: `T *p;\n@@   /* allocate n elements */`, choices: ["p = malloc(n * sizeof *p);", "p = malloc(n * sizeof(T*));", "p = malloc(n * sizeof(p));", "p = malloc(sizeof *p);"], answer: 0, why: "sizeof *p is the element's size and tracks the type of p automatically; sizeof(T*)/sizeof(p) size a pointer, and the last form allocates just one element." },
-      { q: "Why should you not assume malloc returns memory aligned for a 16-byte __m128, even though it often does on x86-64?", choices: ["malloc only guarantees alignof(max_align_t); for a specific stronger alignment use aligned_alloc or posix_memalign.", "malloc never returns aligned memory.", "__m128 does not need alignment.", "Alignment is only a compile-time concept."], answer: 0, why: "The guarantee is max_align_t (often 16 on x86-64 but not promised everywhere); portable SIMD code requests the alignment it needs explicitly." }
+      { q: "Why should you not assume malloc returns memory aligned for a 16-byte __m128, even though it often does on x86-64?", choices: ["malloc only guarantees alignof(max_align_t); for a specific stronger alignment use aligned_alloc or posix_memalign.", "malloc never returns aligned memory.", "__m128 does not need alignment.", "Alignment is only a compile-time concept."], answer: 0, why: "The guarantee is max_align_t (often 16 on x86-64 but not promised everywhere); portable SIMD code requests the alignment it needs explicitly." },
+      { type: "snippet", q: "Which member order makes the smallest struct on a typical 64-bit target?", code: `// A
+struct A { char c; double d; char e; int f; };
+// B
+struct B { double d; int f; char c; char e; };`, choices: ["B, because ordering widest-to-narrowest minimizes padding", "A, because members should be declared in usage order", "They are always the same size", "A, because putting char first saves space"], answer: 0, why: "In A the 8-byte double must be 8-aligned, so padding is inserted after c and again after e, plus tail padding - often 24 bytes. Ordering fields widest-to-narrowest (B) packs them with minimal padding, typically 16 bytes." },
+      { type: "snippet", q: "Two threads each write their own counter in this struct and it scales badly. Which fix removes the contention?", code: `struct Counters { long a; long b; };  // a and b share one cache line
+// thread 1 writes .a, thread 2 writes .b`, choices: ["Align each counter to its own cache line, e.g. alignas(64)", "Make both fields volatile", "Keep a and b together so they load in one line", "Replace them with a single shared counter"], answer: 0, why: "a and b share a cache line, so each thread's write invalidates the other core's copy - false sharing, which serializes the writes. Padding or aligning each to its own 64-byte line removes the ping-pong; volatile does not help and a single counter would need synchronization." },
+      { type: "snippet", q: "You must read a uint32_t from an arbitrary byte offset of a buffer. Which is both portable and safe?", code: `unsigned char *buf = get_buf();  size_t off = 3;   // not 4-byte aligned
+uint32_t v;
+// A
+v = *(uint32_t *)(buf + off);
+// B
+memcpy(&v, buf + off, sizeof v);`, choices: ["B, because memcpy avoids the misaligned access and the strict-aliasing violation", "A, because the cast is faster", "A, because compilers always handle misalignment", "Both are equally correct on every platform"], answer: 0, why: "buf + off may be misaligned (a fault or slow path on some CPUs), and reading a uint32_t through an unsigned char buffer via a cast also breaks strict aliasing. memcpy copies the bytes safely and the compiler lowers it to an efficient (often single) load where allowed." }
     ],
     systems: [
       { q: "What is a file descriptor?", choices: ["A small non-negative integer that indexes a process's open file table.", "A pointer to a FILE structure.", "A disk block number.", "The size of a file in bytes."], answer: 0, why: "Descriptors 0, 1, 2 are stdin, stdout, stderr; higher-level FILE* streams wrap descriptors with buffering." },
@@ -456,7 +473,30 @@ what LD_PRELOAD hooks (it wins the symbol search), and what
       { type: "code", q: "Which line correctly advances the offset in this robust write loop?", code: `size_t off = 0;\nwhile (off < len) {\n    ssize_t n = write(fd, buf + off, len - off);\n    if (n < 0) { if (errno == EINTR) continue; return -1; }\n    @@   /* account for a possibly short write */\n}`, choices: ["off += n;", "off = n;", "off += len;", "break;"], answer: 0, why: "write() may transfer fewer bytes than requested, so you advance by the count actually written ('off += n') and keep looping until all of len is sent." },
       { type: "code", q: "Which call maps the whole file read-only into memory so you can read it like an array?", code: `int fd = open(path, O_RDONLY);\nstruct stat st; fstat(fd, &st);\nchar *p = @@`, choices: ["mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);", "malloc(st.st_size);", "mmap(NULL, st.st_size, PROT_WRITE, MAP_SHARED, fd, 0);", "(char *)read(fd, NULL, st.st_size);"], answer: 0, why: "mmap with PROT_READ/MAP_PRIVATE maps the file's pages read-only and faults them in on demand; PROT_WRITE needs write access, and malloc/read do not memory-map the file." },
       { type: "code", q: "Which declaration lets you read a 32-bit hardware register at a fixed address so every read really hits the device?", code: `@@\nuint32_t status = *reg;   /* must read the device each time */`, choices: ["volatile uint32_t *reg = (volatile uint32_t *)0x40001000u;", "uint32_t *reg = (uint32_t *)0x40001000u;", "const uint32_t *reg = (uint32_t *)0x40001000u;", "uint32_t reg = 0x40001000u;"], answer: 0, why: "The volatile-qualified pointer forces every dereference to access the register (no caching or elision); a non-volatile pointer lets the compiler reuse a stale value, and the last option is just an integer, not a pointer." },
-      { q: "A driver polls a status bit in a while loop; on real hardware the bit flips but the loop never exits. The most likely cause is:", choices: ["The register pointer is not volatile, so the compiler cached the first read and never re-reads it.", "The CPU is too fast for the device.", "The loop needs a mutex.", "The bit is stored little-endian."], answer: 0, why: "Without volatile the compiler may load the register once and reuse that value, spinning forever; marking the pointer volatile forces a fresh read every iteration." }
+      { q: "A driver polls a status bit in a while loop; on real hardware the bit flips but the loop never exits. The most likely cause is:", choices: ["The register pointer is not volatile, so the compiler cached the first read and never re-reads it.", "The CPU is too fast for the device.", "The loop needs a mutex.", "The bit is stored little-endian."], answer: 0, why: "Without volatile the compiler may load the register once and reuse that value, spinning forever; marking the pointer volatile forces a fresh read every iteration." },
+      { type: "snippet", q: "Two threads increment a shared counter. Which is correct?", code: `// A
+volatile int c;
+c++;
+
+// B
+_Atomic int c;
+atomic_fetch_add(&c, 1);`, choices: ["B, because atomic_fetch_add is an indivisible read-modify-write", "A, because volatile makes the increment atomic", "Both are correct", "Neither works without a mutex"], answer: 0, why: "volatile prevents caching but the increment is still load-modify-store, so concurrent threads lose updates - a data race. atomic_fetch_add performs the whole update indivisibly and defines ordering; volatile is not a thread-synchronization tool." },
+      { type: "snippet", q: "A signal handler sets this flag and a normal loop polls it. Which declaration is correct so the loop exits?", code: `// A
+static sig_atomic_t ready = 0;
+// B
+static volatile sig_atomic_t ready = 0;
+
+void handler(int s) { ready = 1; }
+while (!ready) { /* wait */ }`, choices: ["B, because volatile forces the loop to re-read ready from memory each iteration", "A, because sig_atomic_t is already volatile", "Both are equivalent", "Neither works; you must use a mutex"], answer: 0, why: "sig_atomic_t only guarantees the access is atomic with respect to a signal; without volatile the compiler may cache the read and spin forever. volatile forces a fresh load each iteration. For threads, use _Atomic instead of volatile." },
+      { type: "snippet", q: "Which version is guaranteed to actually access the hardware register on each read?", code: `// A
+uint32_t *reg = (uint32_t *)0x40001000u;
+uint32_t s1 = *reg;
+uint32_t s2 = *reg;   // compiler may reuse s1
+
+// B
+volatile uint32_t *reg = (volatile uint32_t *)0x40001000u;
+uint32_t s1 = *reg;
+uint32_t s2 = *reg;   // both reads hit the device`, choices: ["B, because a volatile pointer forces every dereference to access memory", "A, because two reads are always performed as written", "They compile to identical code", "A, because volatile is only for writes"], answer: 0, why: "In A the compiler may prove *reg is unchanged and reuse s1 for s2, missing a device update. The volatile-qualified pointer in B forces each dereference to hit the register, which is required for memory-mapped I/O." }
     ],
     performance: [
       { q: "Why is stride-one, sequential array access usually faster than scattered access?", choices: ["It uses full cache lines and enables hardware prefetching, reducing cache misses.", "It uses fewer CPU instructions per element.", "It avoids integer overflow.", "It disables branch prediction."], answer: 0, why: "Memory moves in cache lines; contiguous access amortizes each miss over many useful bytes and the prefetcher can stay ahead." },
@@ -498,7 +538,53 @@ what LD_PRELOAD hooks (it wins the symbol search), and what
       { type: "code", q: "Which line computes the number of TILE-wide tiles needed to cover n elements (ceiling division)?", code: `#define TILE 32\nint n = get_size();\n@@   /* tiles must cover the final partial tile too */`, choices: ["int tiles = (n + TILE - 1) / TILE;", "int tiles = n / TILE;", "int tiles = n / TILE + 1;", "int tiles = (n - 1) / TILE;"], answer: 0, why: "(n + TILE - 1) / TILE is the standard ceiling division; plain n / TILE drops the final partial tile, and the other forms are off by one at exact multiples or n = 0." },
       { type: "code", q: "Which body correctly unrolls this sum by 4 (n is a multiple of 4) to cut loop overhead?", code: `long s = 0;\nfor (int i = 0; i < n; i += 4) {\n    @@\n}`, choices: ["s += a[i] + a[i+1] + a[i+2] + a[i+3];", "s += a[i];", "s += a[i] + a[i+4];", "s += a[i*4];"], answer: 0, why: "Summing all four consecutive elements per step does the same work with a quarter of the loop tests/branches and gives the CPU independent adds to pipeline; the others skip elements or index wrongly." },
       { type: "code", q: "Which intrinsic adds the two __m128 vectors lane-by-lane?", code: `__m128 va = _mm_load_ps(a);   /* 4 floats */\n__m128 vb = _mm_load_ps(b);\n__m128 vs = @@\n_mm_store_ps(out, vs);`, choices: ["_mm_add_ps(va, vb);", "va + vb;", "_mm_add_epi32(va, vb);", "_mm_load_ps(va);"], answer: 0, why: "_mm_add_ps adds four single-precision lanes; __m128 has no built-in + operator with plain intrinsics, _mm_add_epi32 is for integer vectors, and _mm_load_ps loads rather than adds." },
-      { type: "code", q: "p may not be 16-byte aligned. Which load reads 4 floats into a vector without faulting?", code: `float *p = maybe_unaligned();\n__m128 v = @@`, choices: ["_mm_loadu_ps(p);", "_mm_load_ps(p);", "*(__m128 *)p;", "_mm_set1_ps(*p);"], answer: 0, why: "_mm_loadu_ps performs an unaligned load; _mm_load_ps and the pointer cast require 16-byte alignment and fault otherwise, and _mm_set1_ps broadcasts a single value instead of loading four." }
+      { type: "code", q: "p may not be 16-byte aligned. Which load reads 4 floats into a vector without faulting?", code: `float *p = maybe_unaligned();\n__m128 v = @@`, choices: ["_mm_loadu_ps(p);", "_mm_load_ps(p);", "*(__m128 *)p;", "_mm_set1_ps(*p);"], answer: 0, why: "_mm_loadu_ps performs an unaligned load; _mm_load_ps and the pointer cast require 16-byte alignment and fault otherwise, and _mm_set1_ps broadcasts a single value instead of loading four." },
+      { type: "snippet", q: "On a large float array, which reduction usually runs fastest, and why?", code: `// A
+float s = 0;
+for (int i = 0; i < n; i++) s += a[i];
+
+// B
+float s0=0, s1=0, s2=0, s3=0;
+for (int i = 0; i+3 < n; i += 4) {
+    s0 += a[i];   s1 += a[i+1];
+    s2 += a[i+2]; s3 += a[i+3];
+}
+float s = s0 + s1 + s2 + s3;   // + handle the tail`, choices: ["B, because its four independent add chains hide FP-add latency and pipeline better", "A, because it touches memory in the simplest order", "They are identical; the compiler always emits the same code", "A, because more variables always means more memory traffic"], answer: 0, why: "A single accumulator forms one dependency chain bounded by FP-add latency; B's four independent chains keep the FP unit busy. The tradeoff is that regrouping the additions changes rounding, so it needs -ffast-math or explicit acceptance." },
+      { type: "snippet", q: "Which version avoids accidental O(n^2) work on a hot loop?", code: `// A
+for (size_t i = 0; i < strlen(s); i++) process(s[i]);
+
+// B
+size_t n = strlen(s);
+for (size_t i = 0; i < n; i++) process(s[i]);`, choices: ["B, because strlen runs once instead of on every iteration", "A, because strlen is cheap", "A, because the compiler always hoists strlen out of the condition", "They are equivalent for all inputs"], answer: 0, why: "strlen is O(n), so calling it in the loop condition makes the loop O(n^2). Because process(s[i]) might change s, the compiler usually cannot prove strlen is loop-invariant, so hoist it yourself into n." },
+      { type: "snippet", q: "For a row-major matrix int a[R][C], which loop order is cache-friendly?", code: `// A
+for (int j = 0; j < C; j++)
+  for (int i = 0; i < R; i++)
+    sum += a[i][j];
+
+// B
+for (int i = 0; i < R; i++)
+  for (int j = 0; j < C; j++)
+    sum += a[i][j];`, choices: ["B, because it walks each row contiguously and reuses full cache lines", "A, because the outer loop is shorter", "Both have identical memory behavior", "A, because column-major access is always faster in C"], answer: 0, why: "C stores each row contiguously, so varying j fastest (B) reads sequential addresses and uses every byte of each cache line. A strides by a whole row each step and thrashes the cache." },
+      { type: "snippet", q: "Which loop is the compiler most likely to auto-vectorize?", code: `// A
+void f(float *x, float *y, int n) {
+    for (int i = 0; i < n; i++) x[i] = x[i] + y[i];
+}
+// B
+void g(float *restrict x, float *restrict y, int n) {
+    for (int i = 0; i < n; i++) x[i] = x[i] + y[i];
+}`, choices: ["B, because restrict promises x and y do not overlap, so it can vectorize safely", "A, because it has fewer keywords", "Neither can be vectorized in C", "Both vectorize identically regardless of restrict"], answer: 0, why: "Without restrict the compiler must assume x and y might alias, forcing a conservative scalar loop. restrict promises no overlap, letting it emit vector loads and stores. You must honor it - passing overlapping pointers is undefined behavior." },
+      { type: "snippet", q: "One of these loops cannot be auto-vectorized. Which, and why?", code: `// A: prefix sum
+for (int i = 1; i < n; i++) a[i] = a[i-1] + a[i];
+
+// B: elementwise scale
+for (int i = 0; i < n; i++) a[i] = a[i] * 2.0f;`, choices: ["A, because each iteration depends on the previous result (a loop-carried dependency)", "B, because multiplication cannot be vectorized", "Neither can be vectorized", "Both vectorize the same way"], answer: 0, why: "B's iterations are independent and vectorize trivially. A's prefix sum reads a[i-1] written by the previous iteration - a loop-carried dependency that forces sequential execution; parallelizing it needs a different algorithm such as a scan." },
+      { type: "snippet", q: "Which version scales 4 floats per iteration with SIMD (assume n % 4 == 0 and aligned)?", code: `// A
+for (int i = 0; i < n; i++) out[i] = in[i] * k;
+
+// B
+__m128 vk = _mm_set1_ps(k);
+for (int i = 0; i < n; i += 4)
+    _mm_store_ps(out + i, _mm_mul_ps(_mm_load_ps(in + i), vk));`, choices: ["B, because _mm_mul_ps multiplies four lanes at once, doing 4 elements per iteration", "A, because scalar code is always faster than intrinsics", "They compute different results", "B only works for integers"], answer: 0, why: "B broadcasts k with _mm_set1_ps and multiplies four floats per instruction with _mm_mul_ps, processing the array 4 elements at a time. A is the scalar equivalent; at -O3 a good compiler may auto-vectorize A into similar code." }
     ],
     libraries: [
       { q: "Why is strcpy considered dangerous?", choices: ["It performs no bounds checking and overflows the destination if the source is too long.", "It is slower than a manual loop.", "It does not null-terminate.", "It only works on read-only strings."], answer: 0, why: "Prefer snprintf or carefully used bounded copies, and remember strncpy may not null-terminate on truncation." },
@@ -540,7 +626,22 @@ what LD_PRELOAD hooks (it wins the symbol search), and what
       { type: "code", q: "Which return statement makes this qsort comparator sort ascending without risking overflow?", code: `int cmp(const void *a, const void *b) {\n    int x = *(const int *)a, y = *(const int *)b;\n    @@\n}`, choices: ["return (x > y) - (x < y);", "return x - y;", "return x < y;", "return x == y ? 0 : 1;"], answer: 0, why: "(x > y) - (x < y) yields -1/0/1 with no overflow; 'x - y' overflows for large-magnitude values, and the boolean forms cannot express all three orderings a comparator needs." },
       { type: "code", q: "Which call gives the increment exclusive access to the shared counter?", code: `pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;\n@@\nshared_counter++;\npthread_mutex_unlock(&m);`, choices: ["pthread_mutex_lock(&m);", "pthread_mutex_trylock(&m);", "pthread_cond_wait(&c, &m);", "sched_yield();"], answer: 0, why: "pthread_mutex_lock blocks until it owns the mutex, so only one thread runs the increment; trylock may return without the lock, cond_wait needs a held mutex plus a predicate, and yield gives no mutual exclusion." },
       { type: "code", q: "counter is _Atomic. Which line increments it race-free without a mutex?", code: `_Atomic int counter = 0;\n@@   /* called from many threads */`, choices: ["atomic_fetch_add(&counter, 1);", "counter = counter + 1;", "*(volatile int *)&counter += 1;", "(*(int *)&counter)++;"], answer: 0, why: "atomic_fetch_add is a single indivisible read-modify-write; 'counter = counter + 1' is a separate atomic load then store (a lost-update race), and casting away _Atomic removes atomicity entirely." },
-      { q: "For a counter incremented by many threads, why is 'volatile int' insufficient where '_Atomic int' is correct?", choices: ["volatile stops caching/reordering but not torn or lost updates; atomics make the read-modify-write indivisible and define ordering.", "volatile is slower than atomic but equally correct.", "They are interchangeable in C.", "volatile already guarantees atomicity on modern CPUs."], answer: 0, why: "A ++ on a volatile int is still load-modify-store and can lose concurrent updates; _Atomic (or atomic_fetch_add) guarantees the whole operation is indivisible." }
+      { q: "For a counter incremented by many threads, why is 'volatile int' insufficient where '_Atomic int' is correct?", choices: ["volatile stops caching/reordering but not torn or lost updates; atomics make the read-modify-write indivisible and define ordering.", "volatile is slower than atomic but equally correct.", "They are interchangeable in C.", "volatile already guarantees atomicity on modern CPUs."], answer: 0, why: "A ++ on a volatile int is still load-modify-store and can lose concurrent updates; _Atomic (or atomic_fetch_add) guarantees the whole operation is indivisible." },
+      { type: "snippet", q: "Many threads bump a shared statistics counter. Which is correct and lightest?", code: `// A
+long hits;              hits++;
+// B
+_Atomic long hits;      atomic_fetch_add_explicit(&hits, 1, memory_order_relaxed);
+// C
+pthread_mutex_lock(&m); hits++; pthread_mutex_unlock(&m);`, choices: ["B, an atomic relaxed add is race-free and needs no lock for a plain counter", "A, because long increments are atomic on 64-bit CPUs", "C is the only correct option", "A and B are both wrong"], answer: 0, why: "A is a data race and undefined behavior regardless of the CPU. C is correct but a mutex is heavyweight for a counter. B's atomic read-modify-write is race-free, and relaxed ordering is enough because the counter does not guard other data." },
+      { type: "snippet", q: "c is _Atomic int. Is 'c = c + 1;' a safe increment across threads?", code: `_Atomic int c;
+c = c + 1;                 // vs
+atomic_fetch_add(&c, 1);`, choices: ["No - it is an atomic load then a separate atomic store, so updates can be lost", "Yes, because c is _Atomic", "Yes, the compiler fuses it into one atomic op", "Only if c is also volatile"], answer: 0, why: "The load and the store are each atomic, but the read-modify-write as a whole is not: two threads can read the same value and both store value+1, losing an update. Use atomic_fetch_add (or c++ on an atomic, which is a single RMW)." },
+      { type: "snippet", q: "A producer fills data then sets ready; a consumer waits for ready then reads data. Which ordering makes the consumer see the finished data?", code: `// producer
+data = compute();
+atomic_store_explicit(&ready, 1, /* ? */);
+// consumer
+while (!atomic_load_explicit(&ready, /* ? */)) { }
+use(data);`, choices: ["release on the store and acquire on the load", "relaxed on both", "relaxed store, acquire load", "no ordering is needed if data is volatile"], answer: 0, why: "A release store paired with an acquire load creates a happens-before edge, so the consumer sees every write the producer made before the store (including data). relaxed gives no such ordering, and volatile provides neither atomicity nor cross-thread ordering." }
     ]
   };
 
@@ -733,6 +834,38 @@ what LD_PRELOAD hooks (it wins the symbol search), and what
     container.appendChild(card);
   }
 
+  // Compare-the-snippets: show a code block, then choose the correct/most efficient version.
+  function renderSnippet(container, item, number) {
+    const card = el("article", "quiz-card");
+    card.appendChild(el("p", "q", `Q${number}. ${item.q}`));
+    const pre = el("pre", "code-block");
+    pre.textContent = item.code;
+    card.appendChild(pre);
+    const optionsBox = el("div", "options");
+    const explain = el("div", "explain");
+    const buttons = [];
+    const opts = item.choices.map((text, i) => [text, i === item.answer]);
+    for (const [text, isCorrect] of shuffle(opts)) {
+      const btn = el("button", "", text);
+      btn.type = "button";
+      btn.addEventListener("click", () => {
+        for (const b of buttons) {
+          b.disabled = true;
+          if (b.dataset.correct === "1") b.classList.add("correct");
+        }
+        if (!isCorrect) btn.classList.add("incorrect");
+        showExplain(explain, isCorrect, item.why);
+        markAnswered(isCorrect);
+      });
+      btn.dataset.correct = isCorrect ? "1" : "0";
+      buttons.push(btn);
+      optionsBox.appendChild(btn);
+    }
+    card.appendChild(optionsBox);
+    card.appendChild(explain);
+    container.appendChild(card);
+  }
+
   function renderAll() {
     state.answered = 0;
     state.correct = 0;
@@ -745,6 +878,7 @@ what LD_PRELOAD hooks (it wins the symbol search), and what
         if (item.type === "multi") renderMulti(quizBox, item, i + 1);
         else if (item.type === "order") renderOrder(quizBox, item, i + 1);
         else if (item.type === "code") renderCode(quizBox, item, i + 1);
+        else if (item.type === "snippet") renderSnippet(quizBox, item, i + 1);
         else renderSingle(quizBox, item, i + 1);
       });
     }

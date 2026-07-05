@@ -13,6 +13,36 @@
     .term-card p { color:var(--muted); margin-bottom:0; }
     .diagram { margin:14px 0 0; padding:14px 16px; overflow-x:auto; background:var(--panel); border:1px solid var(--line); border-radius:8px; font-family:Consolas,Menlo,monospace; font-size:13px; line-height:1.45; color:var(--text); }
     .diagram-title { margin:14px 0 0; font-size:13px; font-weight:700; color:var(--accent-strong); text-transform:uppercase; }
+    .anim { margin:14px 0 0; padding:14px 16px; background:var(--panel); border:1px solid var(--line); border-radius:8px; font-family:Consolas,Menlo,monospace; font-size:13px; color:var(--text); }
+    .anim-stage { display:flex; flex-wrap:wrap; gap:10px 18px; align-items:flex-start; }
+    .anim-col { flex:1 1 220px; min-width:210px; }
+    .anim-label { margin:0 0 8px; font-weight:700; color:var(--accent-strong); text-transform:uppercase; font-size:12px; }
+    .anim-label span { color:var(--muted); text-transform:none; font-weight:400; margin-left:6px; }
+    .anim-frames { display:flex; flex-direction:column; }
+    .anim-frame { box-sizing:border-box; max-height:64px; overflow:hidden; margin:0 0 4px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); opacity:1; transform:translateY(0); transition:max-height .35s ease, opacity .35s ease, transform .35s ease, padding .35s ease, margin .35s ease, border-color .35s ease, background .35s ease; }
+    .anim-frame strong { color:var(--accent-strong); margin-right:8px; }
+    .anim-frame span { color:var(--muted); }
+    .anim-frame.off { max-height:0; opacity:0; transform:translateY(-8px); padding-top:0; padding-bottom:0; margin-bottom:0; border-width:0; }
+    .anim-frame.hot { border-color:var(--accent); background:var(--accent-soft); }
+    .anim-frame.ghost { border:1px dashed var(--warn); background:var(--warn-soft); opacity:.75; }
+    .anim-frame.ghost strong::after { content:" ✗ freed"; color:var(--warn); }
+    .anim-mid { flex:0 0 auto; align-self:center; color:var(--accent-strong); font-weight:700; white-space:nowrap; opacity:0; transition:opacity .35s ease; }
+    .anim-mid.on { opacity:1; }
+    .anim-heapbox { box-sizing:border-box; max-height:64px; overflow:hidden; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); opacity:0; transition:max-height .35s ease, opacity .35s ease, border-color .35s ease, background .35s ease; }
+    .anim-heapbox.on { opacity:1; }
+    .anim-heapbox.hot { border-color:var(--accent); background:var(--accent-soft); }
+    .anim-heapbox.leak { border-color:var(--warn); background:var(--warn-soft); }
+    .anim-heapbox.leak strong::after { content:" — unreachable, never freed"; color:var(--warn); }
+    .anim-heapbox strong { color:var(--accent-strong); margin-right:8px; }
+    .anim-heapbox span { color:var(--muted); }
+    .anim-caption { min-height:40px; margin:12px 0 0; padding:8px 10px; border-left:3px solid var(--accent); background:var(--accent-soft); border-radius:0 6px 6px 0; color:var(--text); font-family:inherit; }
+    .anim-controls { display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap; }
+    .anim-controls button { min-height:32px; padding:4px 12px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); font-size:13px; cursor:pointer; }
+    .anim-controls button:hover { border-color:var(--accent); background:var(--accent-soft); }
+    .anim-dots { display:inline-flex; gap:5px; margin-left:6px; }
+    .anim-dots i { width:8px; height:8px; border-radius:50%; background:var(--line); transition:background .2s; }
+    .anim-dots i.cur { background:var(--accent); }
+    @media (prefers-reduced-motion: reduce) { .anim-frame, .anim-heapbox, .anim-mid { transition:none; } }
     .score-bar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:18px 0; padding:12px 15px; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); }
     .score-bar strong { font-size:17px; }
     .score-bar .section-note { margin:0; }
@@ -155,6 +185,78 @@ two classic bugs fall out of the picture:
   return &amp;local;        the frame vanished — dangling pointer into dead stack
   forget free(p);       main returns, p (the POINTER) dies with the frame,
                         the OBJECT stays on the heap forever — a leak</pre>
+      <p class="diagram-title">Animated — watch the same call sequence run</p>
+      <div class="anim" id="anim-stackheap">
+        <div class="anim-stage">
+          <div class="anim-col">
+            <p class="anim-label">Stack <span>grows on call ↓</span></p>
+            <div class="anim-frames">
+              <div class="anim-frame off" id="af-main"><strong>main</strong><span>n = 3, Obj* p</span></div>
+              <div class="anim-frame off" id="af-f"><strong>f</strong><span>locals, return addr</span></div>
+              <div class="anim-frame off" id="af-g"><strong>g</strong><span>locals</span></div>
+            </div>
+          </div>
+          <div class="anim-mid" id="af-ptr">p ──▶</div>
+          <div class="anim-col">
+            <p class="anim-label">Heap <span>survives the function</span></p>
+            <div class="anim-heapbox" id="af-heap"><strong>Obj</strong><span>from malloc / new</span></div>
+          </div>
+        </div>
+        <p class="anim-caption" id="af-cap"></p>
+        <div class="anim-controls">
+          <button type="button" id="af-prev">‹ back</button>
+          <button type="button" id="af-play">⏸ pause</button>
+          <button type="button" id="af-next">next ›</button>
+          <span class="anim-dots" id="af-dots"></span>
+        </div>
+      </div>
+      <script>
+      (function () {
+        var FRAMES = [
+          { main:'on hot', f:'off', g:'off', heap:'', ptr:false,
+            cap:'main() starts — a frame is pushed onto the stack holding its locals: n and the (still empty) pointer p.' },
+          { main:'on hot', f:'off', g:'off', heap:'on hot', ptr:true,
+            cap:'p = malloc(sizeof(Obj)) — the OBJECT is carved out of the heap; only the POINTER p lives in the frame.' },
+          { main:'on', f:'on hot', g:'off', heap:'on', ptr:true,
+            cap:'main calls f() — push another frame (return address + locals). Cheap: the CPU just moves SP.' },
+          { main:'on', f:'on', g:'on hot', heap:'on', ptr:true,
+            cap:'f calls g() — deepest call, deepest stack. Recursion that never bottoms out = stack overflow.' },
+          { main:'on', f:'on hot', g:'off', heap:'on', ptr:true,
+            cap:'g returns — its frame vanishes instantly (SP moves back). Stack memory is never "freed", just abandoned.' },
+          { main:'on hot', f:'ghost', g:'off', heap:'on', ptr:true,
+            cap:'f returns — frame DEAD. If f handed out &local, that pointer now dangles into freed stack.' },
+          { main:'ghost', f:'off', g:'off', heap:'on leak', ptr:false,
+            cap:'main returns without free(p) — the pointer died with the frame but the object stays: a LEAK. (GC languages reclaim it once unreachable.)' }
+        ];
+        var el = function (id) { return document.getElementById(id); };
+        var boxes = { main:el('af-main'), f:el('af-f'), g:el('af-g') };
+        var heap = el('af-heap'), ptr = el('af-ptr'), cap = el('af-cap');
+        var dots = el('af-dots'), playBtn = el('af-play');
+        var i = 0, timer = null, STEP_MS = 2600;
+        FRAMES.forEach(function () { dots.appendChild(document.createElement('i')); });
+        function render() {
+          var fr = FRAMES[i];
+          Object.keys(boxes).forEach(function (k) {
+            boxes[k].className = 'anim-frame ' + (fr[k] === '' ? '' : fr[k]);
+          });
+          heap.className = 'anim-heapbox ' + fr.heap;
+          ptr.className = 'anim-mid' + (fr.ptr ? ' on' : '');
+          cap.textContent = (i + 1) + '/' + FRAMES.length + '  ' + fr.cap;
+          Array.prototype.forEach.call(dots.children, function (d, k) {
+            d.className = k === i ? 'cur' : '';
+          });
+        }
+        function step(delta) { i = (i + delta + FRAMES.length) % FRAMES.length; render(); }
+        function play() { timer = setInterval(function () { step(1); }, STEP_MS); playBtn.textContent = '⏸ pause'; }
+        function pause() { clearInterval(timer); timer = null; playBtn.textContent = '▶ play'; }
+        playBtn.addEventListener('click', function () { timer ? pause() : play(); });
+        el('af-next').addEventListener('click', function () { pause(); step(1); });
+        el('af-prev').addEventListener('click', function () { pause(); step(-1); });
+        render();
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { pause(); }
+        else { play(); }
+      })();
+      </script>
       <div class="quiz" data-section="coding"></div>
     </section>
 

@@ -6,8 +6,8 @@ This repository holds revision material for software-engineering assessment work
 
 - `docs/index.html`: GitHub Pages landing page and document hub.
 - `docs/coding-skills.html`: five-section revision page with knowledge cards, ASCII diagrams, and 55 practice questions (single answer, select-all-that-apply, arrange-in-order, plus code-completion and spot-the-bug snippet questions), including ten principal-level judgment questions, with explanations, running score, and reshuffling retry.
-- `docs/c-programming.html`: expert C revision across language and memory model, dynamic memory, systems and low-level programming, performance, and libraries and tooling (175 questions = 35 per section in three exam formats - single-answer, select-all-that-apply, arrange-in-order - including principal-level judgment questions).
-- `docs/git-version-control.html`: expert Git revision across repository management, branching strategies, collaboration workflows, core operations, and best practices (75 questions = 15 per section in three exam formats - single-answer, select-all-that-apply, arrange-in-order - including principal-level judgment questions).
+- `docs/c-programming.html`: expert C revision across language and memory model, dynamic memory, systems and low-level programming, performance, and libraries and tooling (185 questions = 37 per section in four exam formats - single-answer, select-all-that-apply, arrange-in-order, code-insertion - including principal-level judgment questions).
+- `docs/git-version-control.html`: expert Git revision across repository management, branching strategies, collaboration workflows, core operations, and best practices (85 questions = 17 per section in four exam formats - single-answer, select-all-that-apply, arrange-in-order, code-insertion - including principal-level judgment questions).
 - `docs/styles.css`: shared stylesheet (same look as the Isaac Sim study hub).
 
 ## Deployment

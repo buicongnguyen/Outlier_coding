@@ -48,6 +48,9 @@
     .order-move:disabled { opacity:0.4; cursor:default; }
     .order-item.correct { border-color:var(--accent-strong); background:var(--accent-soft); }
     .order-item.incorrect { border-color:var(--warn); background:var(--warn-soft); }
+    .code-block { margin:12px 0 10px; padding:12px 14px; overflow-x:auto; background:var(--panel); border:1px solid var(--line); border-radius:8px; font-family:Consolas,Menlo,monospace; font-size:13px; line-height:1.55; color:var(--text); white-space:pre; }
+    .code-block .blank { display:inline-block; padding:0 8px; border:1px dashed var(--warn); border-radius:4px; background:var(--warn-soft); color:var(--warn); font-weight:700; }
+    .options button.code-opt { font-family:Consolas,Menlo,monospace; font-size:13px; white-space:pre-wrap; }
   </style>
 </head>
 <body>
@@ -72,15 +75,15 @@
       <p>
         Expert-level revision for Git version control: repository management, branching strategies, and
         collaboration workflows, plus everyday operations and best practices. Five sections each pair a
-        short knowledge summary and an ASCII diagram with fifteen questions - single-answer,
-        select-all-that-apply, and step-ordering, including principal-level judgment questions - and
-        explanations, for 75 questions in total.
+        short knowledge summary and an ASCII diagram with seventeen questions - single-answer,
+        select-all-that-apply, step-ordering, and code-insertion, including principal-level judgment
+        questions - and explanations, for 85 questions in total.
       </p>
     </section>
 
     <div class="score-bar" id="score-bar">
       <strong id="score-text">Score: 0 / 0</strong>
-      <p class="section-note" id="score-note">75 questions across 5 sections (single-answer, select-all, ordering, and principal-level judgment). Answer to see the explanation.</p>
+      <p class="section-note" id="score-note">85 questions across 5 sections (single-answer, select-all, ordering, code-insertion, and principal-level judgment). Answer to see the explanation.</p>
       <button class="retry-btn" id="retry" type="button">Retry (reshuffle)</button>
     </div>
 
@@ -239,7 +242,9 @@ recover after a bad reset:                       git reflog  →  git reset --ha
       { type: "multi", q: "Which of these operations talk to a remote?", options: [["git clone", true], ["git fetch", true], ["git push", true], ["git commit", false], ["git add", false]], why: "commit and add are purely local (working tree, index, and local history); clone, fetch, and push exchange data with a remote." },
       { type: "order", q: "Arrange the steps to start a new project and publish it to a remote.", ordered: ["git init", "git add (stage files)", "git commit", "git remote add origin <url>", "git push -u origin main"], why: "Initialize, stage, and commit locally, then connect a remote and push, setting the upstream with -u." },
       { q: "A 500 MB binary was committed 50 commits back and later deleted, but fresh clones are still huge. Why, and what actually shrinks the repo?", choices: ["The blob is still reachable through old commits and packfiles; you must rewrite history (git filter-repo or BFG), force-push, and have everyone re-clone (then expire reflogs and gc).", "git rm followed by a commit removes it from history.", "git gc alone removes it because it is unused now.", "Adding it to .gitignore removes it from past commits."], answer: 0, why: "Deletion only adds a new commit; the object stays reachable in history, so only a history rewrite plus a forced re-clone removes it, which is why prevention (LFS/.gitignore) matters." },
-      { type: "multi", q: "Which are legitimate ways to reduce clone time or size for a very large repository?", options: [["Shallow clone with --depth to limit history", true], ["Partial clone with --filter=blob:none to fetch blobs on demand", true], ["Sparse checkout to materialize only part of the tree", true], ["git gc --aggressive on the client to download less", false]], why: "Shallow/partial clone and sparse checkout limit what is transferred or materialized; gc only repacks and does not change what a full clone must fetch." }
+      { type: "multi", q: "Which are legitimate ways to reduce clone time or size for a very large repository?", options: [["Shallow clone with --depth to limit history", true], ["Partial clone with --filter=blob:none to fetch blobs on demand", true], ["Sparse checkout to materialize only part of the tree", true], ["git gc --aggressive on the client to download less", false]], why: "Shallow/partial clone and sparse checkout limit what is transferred or materialized; gc only repacks and does not change what a full clone must fetch." },
+      { type: "code", q: "Which command belongs in the blank to connect this new repo to its remote before pushing?", code: `git init\ngit add .\ngit commit -m "initial commit"\n@@\ngit push -u origin main`, choices: ["git remote add origin <url>", "git clone <url>", "git fetch origin", "git branch origin"], answer: 0, why: "git remote add origin registers the remote so the following 'git push -u' can publish and set the upstream; clone/fetch/branch do not create the origin remote here." },
+      { type: "code", q: "Which command stops tracking config.local while keeping the file on disk?", code: `# stop tracking config.local but keep the local file\n@@\necho "config.local" >> .gitignore\ngit commit -m "stop tracking local config"`, choices: ["git rm --cached config.local", "git rm config.local", "rm config.local", "git reset config.local"], answer: 0, why: "git rm --cached removes the file from the index (untracks it) but leaves it on disk; plain git rm or rm delete the working copy, and git reset only unstages pending changes." }
     ],
     branch: [
       { q: "What is a branch in Git?", choices: ["A lightweight, movable pointer to a commit.", "A full copy of the repository files.", "A snapshot of the staging area.", "A remote server."], answer: 0, why: "Because a branch is just a ref, creating one is instant and cheap; the commit graph does the real work." },
@@ -256,7 +261,9 @@ recover after a bad reset:                       git reflog  →  git reset --ha
       { type: "multi", q: "Which describe a fast-forward merge?", options: [["No merge commit is created", true], ["The branch pointer simply moves forward", true], ["It requires the current branch to be an ancestor of the target", true], ["It always creates a commit with two parents", false]], why: "Fast-forward just advances the pointer when there is no divergence; a two-parent merge commit is the three-way case." },
       { type: "order", q: "Arrange the steps to update a feature branch onto main using rebase.", ordered: ["git checkout feature", "git fetch origin", "git rebase origin/main", "Resolve conflicts and git rebase --continue", "git push --force-with-lease"], why: "Rebasing rewrites the branch's commits, so the safe publish is --force-with-lease, which refuses if the remote moved unexpectedly." },
       { q: "During a rebase you must resolve the identical conflict on several successive commits. Which Git feature records and replays your resolution automatically, and how do you turn it on?", choices: ["git rerere (reuse recorded resolution), enabled with rerere.enabled true.", "git cherry-pick with --no-commit.", "git merge with -X ours.", "git commit --amend on each step."], answer: 0, why: "rerere caches how you resolved a given conflict hunk and reapplies it when the same conflict recurs, which is invaluable during long rebases and repeated merges." },
-      { q: "A team sets a fast-forward-only (--ff-only) policy on main. What does this force contributors to do, and what is the benefit?", choices: ["Contributors must rebase their branch onto the latest main before it can merge; main stays strictly linear with no merge commits.", "It prevents all merge conflicts from ever occurring.", "It automatically squashes every pull request.", "It disables branch protection so anyone can push."], answer: 0, why: "Fast-forward-only refuses non-linear merges, pushing integration work onto the feature branch and keeping main a clean linear history (a common trunk-based choice)." }
+      { q: "A team sets a fast-forward-only (--ff-only) policy on main. What does this force contributors to do, and what is the benefit?", choices: ["Contributors must rebase their branch onto the latest main before it can merge; main stays strictly linear with no merge commits.", "It prevents all merge conflicts from ever occurring.", "It automatically squashes every pull request.", "It disables branch protection so anyone can push."], answer: 0, why: "Fast-forward-only refuses non-linear merges, pushing integration work onto the feature branch and keeping main a clean linear history (a common trunk-based choice)." },
+      { type: "code", q: "Which command creates a new branch named feature AND switches to it in one step?", code: `# on main, start work on a new feature branch\n@@`, choices: ["git switch -c feature", "git branch feature", "git switch feature", "git checkout feature"], answer: 0, why: "git switch -c feature (or the older git checkout -b feature) creates and checks out the branch; git branch feature creates it without switching, and the others try to switch to a branch that does not exist yet." },
+      { type: "code", q: "Which command replays your feature commits on top of the latest main?", code: `git switch feature\ngit fetch origin\n@@\n# feature's commits now sit on top of the latest origin/main`, choices: ["git rebase origin/main", "git reset --hard origin/main", "git merge --squash origin/main", "git pull"], answer: 0, why: "git rebase origin/main moves feature's commits onto the updated main; git reset --hard would discard feature's commits, and squash-merge or a bare pull produce different history." }
     ],
     collab: [
       { q: "What is the difference between `git fetch` and `git pull`?", choices: ["fetch only downloads remote changes into remote-tracking branches; pull fetches and then merges (or rebases) into your branch.", "They are identical.", "fetch merges and pull only downloads.", "pull only works on the main branch."], answer: 0, why: "fetch is non-destructive to your work, letting you inspect changes before integrating them." },
@@ -273,7 +280,9 @@ recover after a bad reset:                       git reflog  →  git reset --ha
       { type: "multi", q: "Which steps correctly resolve a merge conflict?", options: [["Edit the file to the intended combined result", true], ["Remove the <<<<<<<, =======, and >>>>>>> markers", true], ["git add the resolved file, then commit", true], ["Delete the repository and re-clone it", false]], why: "A human edits the conflicted region, removes the markers, stages, and commits; re-cloning does not resolve anything." },
       { type: "order", q: "Arrange the steps to contribute to a project via a fork and pull request.", ordered: ["Fork the repository on the platform", "git clone your fork locally", "Create a feature branch and commit changes", "git push the branch to your fork", "Open a pull request to the upstream repo"], why: "Forks let you propose changes without write access to the original; the pull request is the review gate." },
       { q: "Two engineers rebase and try to push the same shared branch. Engineer B's git push --force-with-lease is rejected. What did it protect against, and what should B do?", choices: ["It detected that the remote advanced (A pushed) since B last fetched, preventing B from overwriting A's commits; B should fetch, integrate A's work, and push again.", "It is a spurious failure; B should switch to a plain --force.", "It means B's local branch is corrupt and must be re-cloned.", "It rejects only because commit signing is required."], answer: 0, why: "--force-with-lease overwrites only if the remote still matches what B last saw; the rejection is exactly the safety net a blind --force would have bypassed, losing A's work." },
-      { type: "multi", q: "Which controls are enforced server-side (not bypassable with --no-verify), rather than being advisory local checks?", options: [["Branch protection requiring an approved pull-request review", true], ["Required passing status checks / CI before merge", true], ["Required signed commits enforced by branch protection", true], ["A local pre-commit hook that runs the linter", false]], why: "Local hooks are convenience and are bypassable (e.g., --no-verify); real gates live in server-side branch protection and CI." }
+      { type: "multi", q: "Which controls are enforced server-side (not bypassable with --no-verify), rather than being advisory local checks?", options: [["Branch protection requiring an approved pull-request review", true], ["Required passing status checks / CI before merge", true], ["Required signed commits enforced by branch protection", true], ["A local pre-commit hook that runs the linter", false]], why: "Local hooks are convenience and are bypassable (e.g., --no-verify); real gates live in server-side branch protection and CI." },
+      { type: "code", q: "A merge stopped with conflicts and you have edited and staged the fixes. Which command finalizes it?", code: `# conflicts resolved and staged\ngit add resolved.c\n@@   # record the completed merge`, choices: ["git commit", "git merge --abort", "git push --force", "git rebase --skip"], answer: 0, why: "Once the resolved files are staged, git commit creates the merge commit; git merge --abort throws the resolution away and the others do not complete the merge." },
+      { type: "code", q: "Which command brings the upstream project's new commits into your fork's main before you push it?", code: `git fetch upstream\ngit switch main\n@@\ngit push origin main`, choices: ["git merge upstream/main", "git merge origin/main", "git reset --hard origin/main", "git rebase main"], answer: 0, why: "Merging upstream/main integrates the original project's commits into your fork's main; origin is your fork (already current), and reset --hard would discard your local main." }
     ],
     ops: [
       { q: "What does `git commit --amend` do?", choices: ["Replaces the most recent commit with a new one, letting you fix its message or contents.", "Adds a second parent to the commit.", "Merges the last two commits on the remote.", "Creates a new branch."], answer: 0, why: "Because it rewrites the last commit, avoid amending a commit you have already pushed to a shared branch." },
@@ -290,7 +299,9 @@ recover after a bad reset:                       git reflog  →  git reset --ha
       { type: "multi", q: "Which commands help you inspect or recover history?", options: [["git reflog", true], ["git bisect", true], ["git log --graph", true], ["git reset --hard", false]], why: "reflog recovers 'lost' commits and bisect/log inspect history; git reset --hard discards work rather than recovering it." },
       { type: "order", q: "Arrange the steps of a git bisect session to find a bad commit.", ordered: ["git bisect start", "git bisect bad (mark the current broken commit)", "git bisect good <old-known-good-sha>", "Test each checkout and mark it good or bad", "git bisect reset when finished"], why: "Bisect binary-searches between a good and bad commit, converging in about log2(n) tests." },
       { q: "You want to git bisect a regression, but the test is flaky and fails on about 10% of runs even at known-good commits. How do you still get a trustworthy result?", choices: ["Use git bisect run with a script that retries or aggregates the test, and mark ambiguous commits with git bisect skip, so a single flaky run cannot mislead the search.", "Run bisect once and trust the first bad commit it reports.", "Delete the flaky test and bisect on compilation only.", "Use git blame instead, which is immune to flakiness."], answer: 0, why: "Bisect assumes a clean good-to-bad transition; flakiness breaks that, so make the per-commit decision robust (retries/thresholds) or skip commits you cannot judge." },
-      { q: "After git reset --hard you realize you dropped two local commits. What recovers them, and what would make them truly unrecoverable?", choices: ["git reflog still references the old HEAD, so resetting/checking out that SHA restores them; they become unrecoverable only after the reflog entry expires and gc prunes the objects (or you expire reflogs and gc --prune=now).", "Nothing can recover them; reset --hard is always permanent.", "git revert brings them back automatically.", "They are on the remote, so a plain git pull restores them."], answer: 0, why: "reset --hard leaves a reflog entry, so the commits stay reachable and recoverable until reflog expiry plus gc removes them; that window is the real safety net." }
+      { q: "After git reset --hard you realize you dropped two local commits. What recovers them, and what would make them truly unrecoverable?", choices: ["git reflog still references the old HEAD, so resetting/checking out that SHA restores them; they become unrecoverable only after the reflog entry expires and gc prunes the objects (or you expire reflogs and gc --prune=now).", "Nothing can recover them; reset --hard is always permanent.", "git revert brings them back automatically.", "They are on the remote, so a plain git pull restores them."], answer: 0, why: "reset --hard leaves a reflog entry, so the commits stay reachable and recoverable until reflog expiry plus gc removes them; that window is the real safety net." },
+      { type: "code", q: "You committed too early. Which command undoes the last commit but keeps all its changes staged?", code: `# undo the most recent commit, keep everything staged\n@@`, choices: ["git reset --soft HEAD~1", "git reset --hard HEAD~1", "git revert HEAD", "git commit --amend"], answer: 0, why: "git reset --soft HEAD~1 moves HEAD back one commit while leaving the index and working tree untouched, so the changes stay staged; --hard discards them and revert adds a new commit instead." },
+      { type: "code", q: "Which command belongs in the blank to publish a rebased branch without clobbering a teammate's work?", code: `git rebase origin/main\n# publish the rewritten history safely\n@@`, choices: ["git push --force-with-lease", "git push --force", "git push", "git push --mirror"], answer: 0, why: "--force-with-lease overwrites only if the remote still matches what you last fetched, so it refuses when a teammate has pushed; a plain --force would clobber their commits and a normal push is rejected after a rebase." }
     ],
     best: [
       { q: "Why should you avoid rewriting history on a shared/published branch?", choices: ["Force-pushing rewritten commits breaks everyone else's history and causes painful re-syncs and lost work.", "It makes the repo larger.", "Git forbids it entirely.", "It has no downside."], answer: 0, why: "Rewrite freely on local, unpushed work; once others may have based work on it, prefer revert over rewrite." },
@@ -307,7 +318,9 @@ recover after a bad reset:                       git reflog  →  git reset --ha
       { type: "multi", q: "Which are the safer or preferred choices?", options: [["Use git revert to undo a commit that is already public", true], ["Use git push --force-with-lease instead of --force", true], ["Keep pull requests small and focused", true], ["Commit large binaries directly instead of using Git LFS", false]], why: "revert is non-destructive on public history, --force-with-lease avoids clobbering others, small PRs review better, and LFS keeps large binaries out of history." },
       { type: "order", q: "Arrange the steps to stop tracking a committed file while keeping it locally.", ordered: ["git rm --cached <file>", "Add the file or pattern to .gitignore", "git commit the change", "If it was a secret, rotate it (history still contains it)"], why: "Untracking does not scrub history, so a leaked credential must still be rotated." },
       { q: "Your release pipeline signs tags with a CI key. An attacker who gains push access adds a malicious commit. What does signing give you here, and what does it not?", choices: ["Signing proves provenance and integrity (who signed what) but does not stop an authorized signer from signing malicious content; you still need review, protected branches, and least-privilege access.", "Signing cryptographically prevents any malicious commit from entering the repo.", "Signing makes the repository history immutable.", "Signing replaces the need for code review and CI."], answer: 0, why: "Signatures establish authenticity, not authorization or correctness; defense in depth (review, branch protection, minimal access, secret hygiene) is what limits an attacker who holds credentials." },
-      { type: "multi", q: "Which measures actually reduce the blast radius of a compromised developer credential?", options: [["Protected branches that require independent review before merge", true], ["Required signed commits with verified identities", true], ["Short-lived, least-privilege access tokens", true], ["Committing secrets into the repo so they are versioned", false]], why: "Review, verified signing, and least privilege contain damage; versioning secrets does the opposite by persisting them in history for anyone with read access." }
+      { type: "multi", q: "Which measures actually reduce the blast radius of a compromised developer credential?", options: [["Protected branches that require independent review before merge", true], ["Required signed commits with verified identities", true], ["Short-lived, least-privilege access tokens", true], ["Committing secrets into the repo so they are versioned", false]], why: "Review, verified signing, and least privilege contain damage; versioning secrets does the opposite by persisting them in history for anyone with read access." },
+      { type: "code", q: "You ran 'git reset --hard HEAD~3' and lost good commits. Which command finds where HEAD used to point so you can recover them?", code: `# oops: git reset --hard HEAD~3 dropped good commits\n@@\n# copy the lost commit's SHA from the output, then:\ngit reset --hard <sha>`, choices: ["git reflog", "git log --oneline", "git status", "git branch -a"], answer: 0, why: "git reflog lists everywhere HEAD has pointed, including the commits orphaned by reset --hard, so you can read their SHA; plain git log only shows currently-reachable history." },
+      { type: "code", q: "Which command makes git bisect test each revision automatically until it finds the first bad commit?", code: `git bisect start\ngit bisect bad\ngit bisect good v1.0\n@@   # let Git drive the search`, choices: ["git bisect run ./test.sh", "git bisect skip", "git bisect reset", "git checkout v1.0"], answer: 0, why: "git bisect run executes the script at each step and marks the revision good or bad from its exit status until the culprit is isolated; skip/reset/checkout do not drive the search." }
     ]
   };
 
@@ -465,6 +478,41 @@ recover after a bad reset:                       git reflog  →  git reset --ha
     container.appendChild(card);
   }
 
+  // Code insertion: a code block with a gap; pick the snippet that belongs in it.
+  function renderCode(container, item, number) {
+    const card = el("article", "quiz-card");
+    card.appendChild(el("p", "q", `Q${number}. ${item.q}`));
+    const pre = el("pre", "code-block");
+    const parts = item.code.split("@@");
+    pre.appendChild(document.createTextNode(parts[0]));
+    pre.appendChild(el("span", "blank", " ??? "));
+    if (parts.length > 1) pre.appendChild(document.createTextNode(parts.slice(1).join("@@")));
+    card.appendChild(pre);
+    const optionsBox = el("div", "options");
+    const explain = el("div", "explain");
+    const buttons = [];
+    const opts = item.choices.map((text, i) => [text, i === item.answer]);
+    for (const [text, isCorrect] of shuffle(opts)) {
+      const btn = el("button", "code-opt", text);
+      btn.type = "button";
+      btn.addEventListener("click", () => {
+        for (const b of buttons) {
+          b.disabled = true;
+          if (b.dataset.correct === "1") b.classList.add("correct");
+        }
+        if (!isCorrect) btn.classList.add("incorrect");
+        showExplain(explain, isCorrect, item.why);
+        markAnswered(isCorrect);
+      });
+      btn.dataset.correct = isCorrect ? "1" : "0";
+      buttons.push(btn);
+      optionsBox.appendChild(btn);
+    }
+    card.appendChild(optionsBox);
+    card.appendChild(explain);
+    container.appendChild(card);
+  }
+
   function renderAll() {
     state.answered = 0;
     state.correct = 0;
@@ -476,6 +524,7 @@ recover after a bad reset:                       git reflog  →  git reset --ha
         state.total += 1;
         if (item.type === "multi") renderMulti(quizBox, item, i + 1);
         else if (item.type === "order") renderOrder(quizBox, item, i + 1);
+        else if (item.type === "code") renderCode(quizBox, item, i + 1);
         else renderSingle(quizBox, item, i + 1);
       });
     }

@@ -16,6 +16,7 @@
     <nav aria-label="Site navigation">
       <a href="#summary">Summary</a>
       <a href="#documents">Documents</a>
+      <a href="#reading">Reading</a>
       <a href="coding-skills.html">Coding Skills</a>
       <a href="c-programming.html">C</a>
       <a href="git-version-control.html">Git</a>
@@ -38,27 +39,27 @@
         <article class="mini-card">
           <span class="status good">Core skill</span>
           <h3>Coding &amp; Debugging</h3>
-          <p>Data structures, complexity, edge cases, stack traces, bisecting, minimal fixes, and regression tests.</p>
+          <p>Data structures, complexity, edge cases, stack traces, bisecting, minimal fixes, and regression tests. <a href="#read-coding">Reading list</a></p>
         </article>
         <article class="mini-card">
           <span class="status good">Systems knowledge</span>
           <h3>Compilers &amp; Porting</h3>
-          <p>Lexing through codegen, plus moving code across languages and runtimes with behavior-parity testing.</p>
+          <p>Lexing through codegen, plus moving code across languages and runtimes with behavior-parity testing. <a href="#read-compilers">Reading list</a></p>
         </article>
         <article class="mini-card">
           <span class="status good">Language deep dive</span>
           <h3>Expert C</h3>
-          <p>Systems development, memory management, performance, and libraries across 200 questions (SIMD, volatile, mmap, alignment, atomics; with code-insertion and principal-level judgment) in five sections.</p>
+          <p>Systems development, memory management, performance, and libraries across 200 questions (SIMD, volatile, mmap, alignment, atomics; with code-insertion and principal-level judgment) in five sections. <a href="#read-c">Reading list</a></p>
         </article>
         <article class="mini-card">
           <span class="status good">Version control</span>
           <h3>Git Mastery</h3>
-          <p>Repository management, branching, collaboration, core operations, and best practices across 100 questions (with code/settings-insertion and principal-level judgment questions).</p>
+          <p>Repository management, branching, collaboration, core operations, and best practices across 100 questions (with code/settings-insertion and principal-level judgment questions). <a href="#read-git">Reading list</a></p>
         </article>
         <article class="mini-card">
           <span class="status good">Practice format</span>
           <h3>MCQ Drills</h3>
-          <p>Questions with explanations, a running score, and a reshuffling retry button. Works offline.</p>
+          <p>Questions with explanations, a running score, and a reshuffling retry button. Works offline. <a href="#read-mcq">Why this format works</a></p>
         </article>
       </div>
     </section>
@@ -84,10 +85,124 @@
         </a>
       </div>
     </section>
+
+    <section id="reading" class="section">
+      <h2>Reading &amp; References</h2>
+      <p class="section-note">
+        Free, authoritative sources to read alongside each study area - books, interactive tools, and
+        reference documentation. Everything here is readable online at no cost.
+      </p>
+
+      <article id="read-coding" class="course">
+        <span class="status good">Core skill</span>
+        <h3>Coding &amp; Debugging</h3>
+        <p>
+          The fastest way to internalize data structures is to see them move: VisuAlgo animates
+          sorting, trees, heaps, hashing, and graphs step by step, while the Big-O Cheat Sheet
+          collects the time/space complexities of common structures and sorts in one table worth
+          memorizing. For depth, MIT's 6.006 (OpenCourseWare) teaches the reasoning behind the
+          complexities - invariants, amortized analysis, why hashing works. On the debugging side,
+          the git-bisect documentation is the canonical description of binary-searching history for
+          the commit that broke you, and freeCodeCamp's DSA guide is a gentle structured pass over
+          the whole area with exercises.
+        </p>
+        <div class="sources">
+          <a href="https://visualgo.net/">VisuAlgo animations</a>
+          <a href="https://www.bigocheatsheet.com/">Big-O Cheat Sheet</a>
+          <a href="https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/">MIT 6.006 (OCW)</a>
+          <a href="https://git-scm.com/docs/git-bisect">git-bisect docs</a>
+          <a href="https://www.freecodecamp.org/news/learn-data-structures-and-algorithms/">freeCodeCamp DSA guide</a>
+        </div>
+      </article>
+
+      <article id="read-compilers" class="course">
+        <span class="status good">Systems knowledge</span>
+        <h3>Compilers &amp; Porting</h3>
+        <p>
+          <em>Crafting Interpreters</em> is the standout free book here: you build a complete
+          language twice - first a tree-walk interpreter in Java, then a bytecode VM in C - and every
+          pipeline stage on the study page (lexer, parser, AST, codegen) becomes something you have
+          personally written. After it, the LLVM Kaleidoscope tutorial shows how a production
+          compiler frontend feeds a real optimizing backend, with "How to learn compilers: LLVM
+          Edition" as a map of what to read in which order. For the porting half, Martin Fowler's
+          strangler-fig article is the original description of incremental migration, and
+          hyrumslaw.com is the one-page statement of why observable behavior - not documentation -
+          is your real API contract.
+        </p>
+        <div class="sources">
+          <a href="https://craftinginterpreters.com/">Crafting Interpreters (free book)</a>
+          <a href="https://llvm.org/docs/tutorial/">LLVM Kaleidoscope tutorial</a>
+          <a href="https://lowlevelbits.org/how-to-learn-compilers-llvm-edition/">How to learn compilers: LLVM Edition</a>
+          <a href="https://martinfowler.com/bliki/StranglerFigApplication.html">Fowler: Strangler Fig Application</a>
+          <a href="https://www.hyrumslaw.com/">Hyrum's Law</a>
+        </div>
+      </article>
+
+      <article id="read-c" class="course">
+        <span class="status good">Language deep dive</span>
+        <h3>Expert C</h3>
+        <p>
+          Jens Gustedt's <em>Modern C</em> (free from the author) is the current-standard deep read -
+          it teaches C17/C23 idioms rather than 1989 habits. Beej's Guide to C is the friendlier
+          companion volume, good for filling gaps quickly. Day to day, cppreference.com is the
+          accurate language and library reference (far more reliable than most tutorial sites), and
+          the comp.lang.c FAQ answers the classic traps - pointers vs arrays, sequence points,
+          undefined behavior - that assessments love. The SEI CERT C Coding Standard documents, rule
+          by rule, how C code goes wrong in the field and what secure code does instead.
+        </p>
+        <div class="sources">
+          <a href="https://gustedt.gitlabpages.inria.fr/modern-c/">Modern C (Gustedt, free)</a>
+          <a href="https://beej.us/guide/bgc/html/">Beej's Guide to C</a>
+          <a href="https://en.cppreference.com/w/c">cppreference (C)</a>
+          <a href="https://c-faq.com/">comp.lang.c FAQ</a>
+          <a href="https://wiki.sei.cmu.edu/confluence/display/c/SEI+CERT+C+Coding+Standard">SEI CERT C Standard</a>
+        </div>
+      </article>
+
+      <article id="read-git" class="course">
+        <span class="status good">Version control</span>
+        <h3>Git Mastery</h3>
+        <p>
+          <em>Pro Git</em> (the official book, free on git-scm.com) is the definitive text - chapters
+          2-3 and 7 cover 90% of daily work, and chapter 10 ("Git Internals") explains the object
+          model that makes everything else click. Learn Git Branching is an interactive sandbox
+          that visualizes commits, branches, rebases, and cherry-picks as you type the commands -
+          the best way to build intuition safely. Atlassian's tutorials shine on workflow
+          comparisons (merge vs rebase, trunk vs git-flow), and Oh Shit, Git! is the honest
+          quick-reference for recovering from the mistakes everyone eventually makes.
+        </p>
+        <div class="sources">
+          <a href="https://git-scm.com/book/en/v2">Pro Git book (free)</a>
+          <a href="https://learngitbranching.js.org/">Learn Git Branching (interactive)</a>
+          <a href="https://www.atlassian.com/git">Atlassian Git tutorials</a>
+          <a href="https://ohshitgit.com/">Oh Shit, Git!</a>
+          <a href="https://git-scm.com/docs">Official command reference</a>
+        </div>
+      </article>
+
+      <article id="read-mcq" class="course">
+        <span class="status good">Practice format</span>
+        <h3>Why MCQ Drills Work</h3>
+        <p>
+          The format of these pages is deliberate. Cognitive psychology calls it the testing effect
+          (retrieval practice): actively pulling an answer from memory strengthens retention far more
+          than re-reading the same material. In the landmark Roediger &amp; Karpicke experiments,
+          students who tested themselves retained roughly 80% of a passage after a week versus about
+          34% for students who only re-read it. Explanations after each answer matter too - immediate
+          feedback corrects misconceptions while they are fresh. For best results, return to these
+          pages over spaced intervals (days apart) rather than in one sitting: spacing plus retrieval
+          is the most robust combination the learning-science literature has produced.
+        </p>
+        <div class="sources">
+          <a href="https://en.wikipedia.org/wiki/Testing_effect">Testing effect (overview)</a>
+          <a href="https://u.osu.edu/ssas/space-repetition-and-retrieval-practice/">OSU: spaced repetition &amp; retrieval practice</a>
+        </div>
+      </article>
+    </section>
   </main>
 
   <footer>
-    <p>Last updated: 2026-07-04. Styles shared with the Isaac Sim study hub.</p>
+    <p>Last updated: 2026-07-05. Styles shared with the Isaac Sim study hub.</p>
   </footer>
 </body>
 </html>

@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Common software-engineering coding interview questions with worked answers: approach, code, and time/space complexity, across arrays, strings, linked lists, trees, graphs, searching, and dynamic programming.">
+  <title>Coding Interview Questions and Answers</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .tool-panel { display:grid; gap:12px; margin:18px 0; }
+    .search-box { width:100%; min-height:42px; border:1px solid var(--line); border-radius:8px; padding:10px 12px; background:var(--panel); color:var(--text); font-size:16px; }
+    .term-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; }
+    .term-card { background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); padding:14px; }
+    .term-card h3 { margin-bottom:6px; color:var(--accent-strong); }
+    .term-card p { color:var(--muted); margin-bottom:0; }
+    details.qa { background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); margin:10px 0; overflow:hidden; }
+    details.qa > summary { cursor:pointer; padding:13px 15px; font-weight:700; list-style:none; display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+    details.qa > summary::-webkit-details-marker { display:none; }
+    details.qa > summary::before { content:"\25B8"; color:var(--accent-strong); }
+    details.qa[open] > summary::before { content:"\25BE"; }
+    details.qa > summary:hover { background:var(--accent-soft); }
+    .qmeta { display:inline-flex; gap:6px; margin-left:auto; }
+    .tag { display:inline-flex; align-items:center; border-radius:999px; padding:2px 9px; font-size:11px; font-weight:700; white-space:nowrap; }
+    .tag.easy { background:var(--accent-soft); color:var(--accent-strong); }
+    .tag.medium { background:var(--warn-soft); color:var(--warn); }
+    .pat { display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:999px; padding:2px 9px; font-size:11px; font-weight:700; color:var(--muted); white-space:nowrap; }
+    .answer { padding:2px 15px 15px; }
+    .answer p { margin:10px 0 0; }
+    .answer p.prob { color:var(--text); }
+    .answer p.note { color:var(--muted); }
+    .answer b { color:var(--text); }
+    .code { background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:10px 12px; margin:10px 0 0; overflow-x:auto; font-family:Consolas,"Courier New",monospace; font-size:13px; line-height:1.55; color:var(--text); white-space:pre; }
+    .cx { display:inline-block; margin-top:10px; padding:6px 10px; border:1px solid var(--line); border-radius:6px; background:var(--panel); color:var(--muted); font-size:13px; }
+    .cx b { color:var(--accent-strong); }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Software engineering study hub</p>
+      <h1>Coding Interview Questions and Answers</h1>
+    </div>
+    <nav aria-label="Site navigation">
+      <a href="index.html">Hub</a>
+      <a href="#patterns">Patterns</a>
+      <a href="#arrays">Arrays</a>
+      <a href="#lists">Lists</a>
+      <a href="#trees">Trees</a>
+      <a href="#dp">DP</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="section intro">
+      <h2>Study Goal</h2>
+      <p>
+        Sixteen of the coding questions that appear most often in software-engineering interviews (the
+        kind collected on Glassdoor, LeetCode, and DSA question banks), each with a short problem
+        statement, the key insight, a worked solution, and its time/space complexity. Solutions are in
+        Python for readability - the patterns transfer to any language. Try each before opening it, and
+        practice stating your approach and complexity out loud.
+      </p>
+    </section>
+
+    <section class="section tool-panel">
+      <input id="search" class="search-box" type="search" placeholder="Search questions and patterns... (e.g. hash map, BFS, sliding window, DP)" aria-label="Search coding questions">
+      <p id="stats" class="section-note"></p>
+    </section>
+
+    <section id="patterns" class="section">
+      <h2>Pattern Cheat Sheet</h2>
+      <p class="section-note">Most interview problems reduce to one of a handful of patterns. Recognize the pattern and the solution usually follows.</p>
+      <div class="term-grid">
+        <article class="term-card"><h3>Hash map</h3><p>Trade space for O(1) average lookups: seen-before checks, counting, grouping, and complement search (Two Sum). Usually turns an O(n&sup2;) scan into O(n).</p></article>
+        <article class="term-card"><h3>Two pointers</h3><p>Walk a sorted array or list from both ends, or with a slow/fast pair. Solves pair-sum, palindrome, dedup, and cycle detection in O(1) extra space.</p></article>
+        <article class="term-card"><h3>Sliding window</h3><p>A moving [start, end] range over a sequence for "longest/shortest substring or subarray with a property." Expand end, shrink start to keep the window valid: O(n).</p></article>
+        <article class="term-card"><h3>Stack / queue</h3><p>Stack for matching pairs, nesting, and undo (Valid Parentheses); queue for FIFO and breadth-first level processing.</p></article>
+        <article class="term-card"><h3>BFS / DFS</h3><p>Traverse trees and graphs. BFS (queue) finds shortest unweighted paths and level order; DFS (recursion/stack) explores depth, connectivity, and backtracking.</p></article>
+        <article class="term-card"><h3>Binary search</h3><p>Halve a sorted search space each step for O(log n). Also "search the answer" for monotonic predicates (smallest x that works).</p></article>
+        <article class="term-card"><h3>Dynamic programming</h3><p>Break a problem into overlapping subproblems and cache results. Define the state, the recurrence, and the base case; fill a table bottom-up.</p></article>
+        <article class="term-card"><h3>Complexity first</h3><p>Always state Big-O time and space, and name the bottleneck. Interviewers care as much about the analysis as the working code.</p></article>
+      </div>
+    </section>
+
+    <!-- ============ ARRAYS & STRINGS ============ -->
+    <section id="arrays" class="section">
+      <h2>1. Arrays and Strings</h2>
+
+      <details class="qa"><summary>1. Two Sum <span class="qmeta"><span class="tag easy">Easy</span><span class="pat">Hash map</span></span></summary>
+        <div class="answer">
+          <p class="prob"><b>Problem:</b> Given an array <code>nums</code> and a target, return the indices of the two numbers that add up to the target (exactly one solution; each element used once).</p>
+          <p><b>Approach:</b> Store each value's index in a hash map as you go. For each <code>x</code>, check whether the complement <code>target - x</code> was already seen - that gives the pair in one pass.</p>
+          <pre class="code">def two_sum(nums, target):
+    seen = {}                     # value -&gt; index
+    for i, x in enumerate(nums):
+        if target - x in seen:
+            return [seen[target - x], i]
+        seen[x] = i
+    return []</pre>
+          <p class="cx"><b>Time</b> O(n) &nbsp;&middot;&nbsp; <b>Space</b> O(n). The brute-force double loop is O(n&sup2;); the hash map removes the inner scan.</p>
+        </div>
+      </details>
+
+      <details class="qa"><summary>2. Valid Parentheses <span class="qmeta"><span class="tag easy">Easy</span><span class="pat">Stack</span></span></summary>
+        <div class="answer">
+          <p class="prob"><b>Problem:</b> Given a string of <code>()[]{}</code>, decide whether every bracket is closed by the correct type in the correct order.</p>
+          <p><b>Approach:</b> Push opening brackets on a stack; on a closing bracket, the top of the stack must be its matching open. The string is valid only if each close matches and the stack ends empty.</p>
+          <pre class="code">def is_valid(s):
+    pairs = {')': '(', ']': '[', '}': '{'}
+    stack = []
+    for c in s:
+        if c in '([{':
+            stack.append(c)
+        elif not stack or stack.pop() != pairs[c]:
+            return False
+    return not stack</pre>
+          <p class="cx"><b>Time</b> O(n) &nbsp;&middot;&nbsp; <b>Space</b> O(n) for the stack.</p>
+        </div>
+      </details>
+
+      <details class="qa"><summary>3. Best Time to Buy and Sell Stock <span class="qmeta"><span class="tag easy">Easy</span><span class="pat">Running min</span></span></summary>
+        <div class="answer">
+          <p class="prob"><b>Problem:</b> Given daily prices, find the maximum profit from a single buy then a later sell (0 if no profit is possible).</p>
+          <p><b>Approach:</b> Track the minimum price seen so far; at each day the best sale today is <code>price - min_so_far</code>. Keep the max of those.</p>
+          <pre class="code">def max_profit(prices):
+    min_price = float('inf')
+    best = 0
+    for p in prices:
+        min_price = min(min_price, p)
+        best = max(best, p - min_price)
+    return best</pre>
+          <p class="cx"><b>Time</b> O(n) &nbsp;&middot;&nbsp; <b>Space</b> O(1).</p>
+        </div>
+      </details>
+
+      <details class="qa"><summary>4. Maximum Subarray (Kadane's) <span class="qmeta"><span class="tag medium">Medium</span><span class="pat">DP / greedy</span></span></summary>
+        <div class="answer">
+          <p class="prob"><b>Problem:</b> Find the contiguous subarray with the largest sum and return that sum.</p>
+          <p><b>Approach:</b> Kadane's algorithm. At each element, either extend the current subarray or start fresh at this element - whichever is larger. Track the best seen.</p>
+          <pre class="code">def max_subarray(nums):
+    best = cur = nums[0]
+    for x in nums[1:]:
+        cur = max(x, cur + x)      # extend or restart
+        best = max(best, cur)
+    return best</pre>
+          <p class="cx"><b>Time</b> O(n) &nbsp;&middot;&nbsp; <b>Space</b> O(1).</p>
+        </div>
+      </details>
+
+      <details class="qa"><summary>5. Group Anagrams <span class="qmeta"><span class="tag medium">Medium</span><span class="pat">Hash map</span></span></summary>
+        <div class="answer">
+          <p class="prob"><b>Problem:</b> Group a list of words so that anagrams (same letters, any order) are in the same group.</p>
+          <p><b>Approach:</b> Anagrams share a canonical form. Use the sorted letters (or a 26-count tuple) as a hash-map key and append each word to its bucket.</p>
+          <pre class="code">from collections import defaultdict
+
+def group_anagrams(words):
+    groups = defaultdict(list)
+    for w in words:
+        key = tuple(sorted(w))     # canonical form
+        groups[key].append(w)
+    return list(groups.values())</pre>
+          <p class="cx"><b>Time</b> O(n &middot; k log k) for n words of length k &nbsp;&middot;&nbsp; <b>Space</b> O(n &middot; k). A count-tuple key drops the sort to O(n &middot; k).</p>
+        </div>
+      </details>
+
+      <details class="qa"><summary>6. Longest Substring Without Repeating Characters <span class="qmeta"><span class="tag medium">Medium</span><span class="pat">Sliding window</span></span></summary>
+        <div class="answer">
+          <p class="prob"><b>Problem:</b> Return the length of the longest substring with all distinct characters.</p>
+          <p><b>Approach:</b> Slide a window [start, i]. Remember each character's last index; when the current character repeats inside the window, jump <code>start</code> just past its previous occurrence. The window is always duplicate-free.</p>
+          <pre class="code">def length_of_longest_substring(s):
+    last = {}                      # char -&gt; last index
+    start = best = 0
+    for i, c in enumerate(s):
+        if c in last and last[c] &gt;= start:
+            start = last[c] + 1
+        last[c] = i
+        best = max(best, i - start + 1)
+    return best</pre>
+          <p class="cx"><b>Time</b> O(n) &nbsp;&middot;&nbsp; <b>Space</b> O(min(n, alphabet)).</p>
+        </div>
+      </details>
+    </section>
+
+    <!-- ============ LINKED LISTS ============ -->
+    <section id="lists" class="section">
+      <h2>2. Linked Lists</h2>
+      <p class="section-note">Assume <code>class ListNode: def __init__(self, val=0, next=None): self.val, self.next = val, next</code>.</p>
+
+      <details class="qa"><summary>7. Reverse a Linked List <span class="qmeta"><span class="tag easy">Easy</span><span class="pat">Pointers</span></span></summary>
+        <div class="answer">
+          <p class="prob"><b>Problem:</b> Reverse a singly linked list and return the new head.</p>
+          <p><b>Approach:</b> Walk the list once, flipping each node's <code>next</code> to point at the previous node. Keep three pointers: previous, current (head), and the saved next.</p>
+          <pre class="code">def reverse_list(head):
+    prev = None
+    while head:
+        nxt = head.next            # save next
+        head.next = prev           # flip pointer
+        prev = head                # advance prev
+        head = nxt                 # advance head
+    return prev                    # new head</pre>
+          <p class="cx"><b>Time</b> O(n) &nbsp;&middot;&nbsp; <b>Space</b> O(1) iterative (recursion would be O(n) stack).</p>
+        </div>
+      </details>
+
+      <details class="qa"><summary>8. Merge Two Sorted Lists <span class="qmeta"><span class="tag easy">Easy</span><span class="pat">Two pointers</span></span></summary>
+        <div class="answer">
+          <p class="prob"><b>Problem:</b> Merge two sorted linked lists into one sorted list.</p>
+          <p><b>Approach:</b> Use a dummy head to simplify edge cases. Repeatedly attach the smaller of the two front nodes; when one list runs out, attach the remainder of the other.</p>
+          <pre class="code">def merge(a, b):
+    dummy = tail = ListNode(0)
+    while a and b:
+        if a.val &lt;= b.val:
+            tail.next, a = a, a.next
+        else:
+            tail.next, b = b, b.next
+        tail = tail.next
+    tail.next = a or b             # attach the rest
+    return dummy.next</pre>
+          <p class="cx"><b>Time</b> O(n + m) &nbsp;&middot;&nbsp; <b>Space</b> O(1) (relinks existing nodes).</p>
+        </div>
+      </details>
+
+      <details class="qa"><summary>9. Detect a Cycle (Floyd's) <span class="qmeta"><span class="tag easy">Easy</span><span class="pat">Fast/slow pointers</span></span></summary>
+        <div class="answer">
+          <p class="prob"><b>Problem:</b> Determine whether a linked list contains a cycle.</p>
+          <p><b>Approach:</b> Floyd's tortoise and hare. Advance a slow pointer one step and a fast pointer two steps. If there is a cycle they eventually meet; if fast reaches the end, there is none.</p>
+          <pre class="code">def has_cycle(head):
+    slow = fast = head
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+        if slow is fast:
+            return True
+    return False</pre>
+          <p class="cx"><b>Time</b> O(n) &nbsp;&middot;&nbsp; <b>Space</b> O(1) - beats the O(n)-space hash-set approach.</p>
+        </div>
+      </details>
+    </section>
+
+    <!-- ============ TREES & GRAPHS ============ -->
+    <section id="trees" class="section">
+      <h2>3. Trees and Graphs</h2>
+      <p class="section-note">Assume a binary-tree node with <code>val</code>, <code>left</code>, and <code>right</code>.</p>
+
+      <details class="qa"><summary>10. Maximum Depth of a Binary Tree <span class="qmeta"><span class="tag easy">Easy</span><span class="pat">DFS recursion</span></span></summary>
+        <div class="answer">
+          <p class="prob"><b>Problem:</b> Return the number of nodes on the longest root-to-leaf path.</p>
+          <p><b>Approach:</b> The depth of a tree is one plus the deeper of its two subtrees. Recurse; an empty subtree has depth 0.</p>
+          <pre class="code">def max_depth(root):
+    if not root:
+        return 0
+    return 1 + max(max_depth(root.left), max_depth(root.right))</pre>
+          <p class="cx"><b>Time</b> O(n) &nbsp;&middot;&nbsp; <b>Space</b> O(h) recursion stack (h = tree height).</p>
+        </div>
+      </details>
+
+      <details class="qa"><summary>11. Validate a Binary Search Tree <span class="qmeta"><span class="tag medium">Medium</span><span class="pat">DFS + bounds</span></span></summary>
+        <div class="answer">
+          <p class="prob"><b>Problem:</b> Check whether a binary tree is a valid BST (every left descendant &lt; node &lt; every right descendant).</p>
+          <p><b>Approach:</b> Carry a valid open range (lo, hi) down the tree. Each node must lie strictly inside it; going left tightens the upper bound to the node's value, going right tightens the lower bound. A common bug is only comparing a node with its direct children - the range fixes that.</p>
+          <pre class="code">def is_valid_bst(root, lo=float('-inf'), hi=float('inf')):
+    if not root:
+        return True
+    if not (lo &lt; root.val &lt; hi):
+        return False
+    return (is_valid_bst(root.left,  lo, root.val) and
+            is_valid_bst(root.right, root.val, hi))</pre>
+          <p class="cx"><b>Time</b> O(n) &nbsp;&middot;&nbsp; <b>Space</b> O(h).</p>
+        </div>
+      </details>
+
+      <details class="qa"><summary>12. Binary Tree Level-Order Traversal <span class="qmeta"><span class="tag medium">Medium</span><span class="pat">BFS queue</span></span></summary>
+        <div class="answer">
+          <p class="prob"><b>Problem:</b> Return the node values level by level, top to bottom, as a list of lists.</p>
+          <p><b>Approach:</b> Breadth-first search with a queue. Before draining the queue for a level, record its current length so you process exactly that level, collecting each node's children for the next.</p>
+          <pre class="code">from collections import deque
+
+def level_order(root):
+    if not root:
+        return []
+    res, q = [], deque([root])
+    while q:
+        level = []
+        for _ in range(len(q)):    # one full level
+            node = q.popleft()
+            level.append(node.val)
+            if node.left:  q.append(node.left)
+            if node.right: q.append(node.right)
+        res.append(level)
+    return res</pre>
+          <p class="cx"><b>Time</b> O(n) &nbsp;&middot;&nbsp; <b>Space</b> O(n) for the queue and output.</p>
+        </div>
+      </details>
+
+      <details class="qa"><summary>13. Number of Islands <span class="qmeta"><span class="tag medium">Medium</span><span class="pat">Grid DFS/BFS</span></span></summary>
+        <div class="answer">
+          <p class="prob"><b>Problem:</b> Given a grid of <code>'1'</code> (land) and <code>'0'</code> (water), count the connected islands (4-directional).</p>
+          <p><b>Approach:</b> Scan the grid; each unvisited land cell starts a new island. Flood-fill it (DFS or BFS), sinking visited land to <code>'0'</code> so it is not counted again.</p>
+          <pre class="code">def num_islands(grid):
+    if not grid:
+        return 0
+    rows, cols = len(grid), len(grid[0])
+
+    def sink(r, c):
+        if r &lt; 0 or c &lt; 0 or r &gt;= rows or c &gt;= cols or grid[r][c] != '1':
+            return
+        grid[r][c] = '0'
+        sink(r+1, c); sink(r-1, c); sink(r, c+1); sink(r, c-1)
+
+    count = 0
+    for r in range(rows):
+        for c in range(cols):
+            if grid[r][c] == '1':
+                count += 1
+                sink(r, c)
+    return count</pre>
+          <p class="cx"><b>Time</b> O(rows &middot; cols) &nbsp;&middot;&nbsp; <b>Space</b> O(rows &middot; cols) worst case (recursion / queue).</p>
+        </div>
+      </details>
+    </section>
+
+    <!-- ============ SEARCHING & DP ============ -->
+    <section id="dp" class="section">
+      <h2>4. Searching and Dynamic Programming</h2>
+
+      <details class="qa"><summary>14. Binary Search <span class="qmeta"><span class="tag easy">Easy</span><span class="pat">Binary search</span></span></summary>
+        <div class="answer">
+          <p class="prob"><b>Problem:</b> Return the index of <code>target</code> in a sorted array, or -1 if absent.</p>
+          <p><b>Approach:</b> Keep a [lo, hi] range and compare the middle element to the target, discarding the half that cannot contain it each step. Use <code>lo + (hi - lo) // 2</code> to avoid overflow in languages where it matters.</p>
+          <pre class="code">def binary_search(nums, target):
+    lo, hi = 0, len(nums) - 1
+    while lo &lt;= hi:
+        mid = lo + (hi - lo) // 2
+        if nums[mid] == target:
+            return mid
+        elif nums[mid] &lt; target:
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    return -1</pre>
+          <p class="cx"><b>Time</b> O(log n) &nbsp;&middot;&nbsp; <b>Space</b> O(1).</p>
+        </div>
+      </details>
+
+      <details class="qa"><summary>15. Climbing Stairs <span class="qmeta"><span class="tag easy">Easy</span><span class="pat">DP (Fibonacci)</span></span></summary>
+        <div class="answer">
+          <p class="prob"><b>Problem:</b> You can climb 1 or 2 steps at a time. How many distinct ways to reach the top of <code>n</code> stairs?</p>
+          <p><b>Approach:</b> Ways(n) = Ways(n-1) + Ways(n-2): the last move is either one or two steps. That is Fibonacci; roll two variables instead of a full table for O(1) space.</p>
+          <pre class="code">def climb_stairs(n):
+    a, b = 1, 1                    # ways to reach step 0 and 1
+    for _ in range(n):
+        a, b = b, a + b
+    return a</pre>
+          <p class="cx"><b>Time</b> O(n) &nbsp;&middot;&nbsp; <b>Space</b> O(1).</p>
+        </div>
+      </details>
+
+      <details class="qa"><summary>16. Coin Change (fewest coins) <span class="qmeta"><span class="tag medium">Medium</span><span class="pat">DP (unbounded)</span></span></summary>
+        <div class="answer">
+          <p class="prob"><b>Problem:</b> Given coin denominations and an amount, return the fewest coins that sum to it, or -1 if impossible.</p>
+          <p><b>Approach:</b> Bottom-up DP. <code>dp[a]</code> = fewest coins to make amount <code>a</code>. For each amount, try every coin: <code>dp[a] = min(dp[a], dp[a - coin] + 1)</code>. Start dp[0] = 0 and the rest at infinity.</p>
+          <pre class="code">def coin_change(coins, amount):
+    dp = [0] + [float('inf')] * amount
+    for a in range(1, amount + 1):
+        for c in coins:
+            if c &lt;= a:
+                dp[a] = min(dp[a], dp[a - c] + 1)
+    return dp[amount] if dp[amount] != float('inf') else -1</pre>
+          <p class="cx"><b>Time</b> O(amount &middot; coins) &nbsp;&middot;&nbsp; <b>Space</b> O(amount). Greedy (largest coin first) is <em>not</em> correct for arbitrary denominations - DP is.</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="section">
+      <h2>How to Answer in the Interview</h2>
+      <p class="section-note">
+        A strong answer is a small script: <strong>clarify</strong> inputs and edge cases (empty, single
+        element, duplicates, negatives), <strong>state the approach and its Big-O before coding</strong>,
+        write clean code, then <strong>walk one example through it</strong> and mention the trade-off you
+        made (usually time vs. space). Naming the pattern - "this is a sliding window" - signals that you
+        recognize the shape, which is what interviewers are really testing.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <p>Coding interview revision. Plain HTML/CSS/JS, offline-friendly, served from <code>docs/</code>.</p>
+  </footer>
+
+  <script>
+    (function () {
+      var search = document.getElementById("search");
+      var stats = document.getElementById("stats");
+      var items = Array.prototype.slice.call(document.querySelectorAll("details.qa, .term-card"));
+      items.forEach(function (el) { el.dataset.search = el.textContent.toLowerCase(); });
+
+      function run() {
+        var t = search.value.trim().toLowerCase();
+        var shown = 0;
+        items.forEach(function (el) {
+          var hit = !t || el.dataset.search.indexOf(t) !== -1;
+          el.classList.toggle("hidden", !hit);
+          if (hit) shown++;
+          if (el.tagName === "DETAILS" && t && hit) el.open = true;
+          if (el.tagName === "DETAILS" && !t) el.open = false;
+        });
+        stats.textContent = t
+          ? shown + " matching questions and patterns"
+          : "16 coding questions with worked answers, plus 8 pattern cards";
+      }
+
+      search.addEventListener("input", run);
+      run();
+    }());
+  </script>
+</body>
+</html>

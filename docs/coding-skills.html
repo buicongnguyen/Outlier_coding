@@ -172,13 +172,32 @@ need FIFO processing?           ── yes ──&gt;  queue / deque     O(1) bo
 need LIFO / undo / recursion?   ── yes ──&gt;  stack             O(1) push/pop
 mostly index reads, few edits?  ── yes ──&gt;  array             O(1) read, O(n) insert</pre>
       <p class="diagram-title">Big-O at a glance (n = 1,000 items, log scale)</p>
-      <pre class="diagram">O(1)         1 op          ▏          hash lookup, array[i]
-O(log n)     ~10 ops       █          binary search
-O(n)         1,000         ███        one pass over the data
-O(n log n)   ~10,000       ████       merge sort, sorting in general
-O(n&sup2;)        1,000,000     ██████     nested loops: compare every pair
-
-each extra █ ~ one more zero — the gap explodes as n grows</pre>
+      <svg class="svgd" viewBox="0 0 760 252" role="img" aria-label="Bar chart of operations needed at n equals 1000 for each complexity class, log scale">
+        <text x="20" y="45" class="c t">O(1)</text>
+        <rect class="n hot" x="170" y="28" width="5" height="24" rx="2"/>
+        <text x="185" y="45" class="m">1 op</text>
+        <text x="740" y="45" text-anchor="end" class="m">hash lookup, array[i]</text>
+        <text x="20" y="80" class="c t">O(log n)</text>
+        <rect class="n hot" x="170" y="63" width="70" height="24" rx="5"/>
+        <text x="250" y="80" class="m">~10 ops</text>
+        <text x="740" y="80" text-anchor="end" class="m">binary search</text>
+        <text x="20" y="115" class="c t">O(n)</text>
+        <rect class="n hot" x="170" y="98" width="210" height="24" rx="5"/>
+        <text x="390" y="115" class="m">1,000</text>
+        <text x="740" y="115" text-anchor="end" class="m">one pass over the data</text>
+        <text x="20" y="150" class="c t">O(n log n)</text>
+        <rect class="n hot" x="170" y="133" width="280" height="24" rx="5"/>
+        <text x="460" y="150" class="m">~10,000</text>
+        <text x="740" y="150" text-anchor="end" class="m">merge sort, sorting in general</text>
+        <text x="20" y="185" class="c w">O(n&#178;)</text>
+        <rect class="n warn" x="170" y="168" width="420" height="24" rx="5"/>
+        <text x="582" y="185" text-anchor="end" class="w" font-size="11.5">1,000,000</text>
+        <text x="740" y="185" text-anchor="end" class="m">nested loops: every pair</text>
+        <line class="e" x1="170" y1="206" x2="590" y2="206"/>
+        <line class="e" x1="170" y1="202" x2="170" y2="210"/><line class="e" x1="240" y1="202" x2="240" y2="210"/><line class="e" x1="310" y1="202" x2="310" y2="210"/><line class="e" x1="380" y1="202" x2="380" y2="210"/><line class="e" x1="450" y1="202" x2="450" y2="210"/><line class="e" x1="520" y1="202" x2="520" y2="210"/><line class="e" x1="590" y1="202" x2="590" y2="210"/>
+        <text x="170" y="224" text-anchor="middle" class="m">1</text><text x="240" y="224" text-anchor="middle" class="m">10</text><text x="310" y="224" text-anchor="middle" class="m">100</text><text x="380" y="224" text-anchor="middle" class="m">1k</text><text x="450" y="224" text-anchor="middle" class="m">10k</text><text x="520" y="224" text-anchor="middle" class="m">100k</text><text x="590" y="224" text-anchor="middle" class="m">1M</text>
+        <text x="20" y="246" class="m">log scale &#8212; every gridline is &#215;10, so each class is roughly one more zero. The gap explodes as n grows.</text>
+      </svg>
       <p class="diagram-title">Why binary search is O(log n)</p>
       <pre class="diagram">find 61 in 9 sorted elements — probe the middle, drop half each step
 
@@ -461,21 +480,47 @@ registers, how the stack stays aligned.  Two compilers that agree on
 it can link object files they have never seen — that agreement is
 the heart of the ABI.</pre>
       <p class="diagram-title">Linking — how undefined symbols find their definitions</p>
-      <pre class="diagram">main.c ─compile─▶ main.o    defines: main       undefined: parse, printf
-parse.c ─compile─▶ parse.o  defines: parse      undefined: strlen
-
-linker matches every UNDEFINED symbol to exactly ONE definition:
-
-  main.o   parse  ─────────▶  parse.o  parse         ✓ (another object file)
-  main.o   printf ─────────▶  libc     printf        ✓ (library; shared libs
-  parse.o  strlen ─────────▶  libc     strlen        ✓  resolve again at load)
-
-  still unresolved  →  "undefined reference to `parse'"   LINK error:
-                       a missing .o or -l library — NOT a missing header
-  defined twice     →  "multiple definition"              collision
-
-then it merges sections (.text with .text, .data with .data), fixes every
-call and data address, and writes the executable.</pre>
+      <svg class="svgd" viewBox="0 0 760 392" role="img" aria-label="Linker data flow: object files' undefined symbols resolve to definitions in other objects and libraries, then merge into the executable">
+        <defs><marker id="lnk-m" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/></marker><marker id="lnk-ma" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent)"/></marker></defs>
+        <rect class="n" x="20" y="49" width="96" height="34" rx="8"/>
+        <text x="68" y="70" text-anchor="middle" class="c t">main.c</text>
+        <line class="e" x1="116" y1="66" x2="196" y2="66" marker-end="url(#lnk-m)"/>
+        <text x="156" y="58" text-anchor="middle" class="m">compile</text>
+        <rect class="n hot" x="200" y="24" width="190" height="84" rx="8"/>
+        <text x="212" y="44" class="c t">main.o</text>
+        <text x="212" y="62" class="c">defines: main</text>
+        <text x="212" y="80" class="c">needs: parse</text>
+        <text x="212" y="98" class="c">needs: printf</text>
+        <rect class="n" x="20" y="178" width="96" height="34" rx="8"/>
+        <text x="68" y="199" text-anchor="middle" class="c t">parse.c</text>
+        <line class="e" x1="116" y1="195" x2="196" y2="195" marker-end="url(#lnk-m)"/>
+        <text x="156" y="187" text-anchor="middle" class="m">compile</text>
+        <rect class="n hot" x="200" y="170" width="190" height="66" rx="8"/>
+        <text x="212" y="192" class="c t">parse.o</text>
+        <text x="212" y="210" class="c">defines: parse</text>
+        <text x="212" y="228" class="c">needs: strlen</text>
+        <rect class="n" x="560" y="120" width="180" height="94" rx="8"/>
+        <text x="572" y="142" class="c t">libc &#8212; shared lib</text>
+        <text x="572" y="162" class="c">printf</text>
+        <text x="572" y="180" class="c">strlen</text>
+        <text x="572" y="202" class="m">re-resolved at load</text>
+        <path class="e acc" d="M 392 76 C 460 76, 460 206, 396 206" marker-end="url(#lnk-ma)"/>
+        <text x="462" y="145" class="a">&#10003;</text>
+        <path class="e acc dash" d="M 392 94 C 490 94, 490 158, 554 158" marker-end="url(#lnk-ma)"/>
+        <path class="e acc dash" d="M 392 224 C 500 224, 500 176, 554 176" marker-end="url(#lnk-ma)"/>
+        <text x="470" y="110" class="m">every NEED matched to exactly ONE definition</text>
+        <rect class="n hot" x="200" y="272" width="280" height="52" rx="8"/>
+        <text x="340" y="292" text-anchor="middle" class="t">app &#8212; executable</text>
+        <text x="340" y="310" text-anchor="middle" class="m">sections merged (.text, .data), addresses fixed</text>
+        <path class="e" d="M 204 108 C 150 130, 150 298, 196 298" marker-end="url(#lnk-m)"/>
+        <line class="e" x1="295" y1="236" x2="295" y2="268" marker-end="url(#lnk-m)"/>
+        <text x="303" y="258" class="m">link</text>
+        <path class="e dash" d="M 650 214 C 650 280, 540 298, 484 298" marker-end="url(#lnk-m)"/>
+        <text x="20" y="352" class="w" font-size="12">"undefined reference to `parse'"</text>
+        <text x="268" y="352" class="m">&#8594; a LINK error: missing .o or -l library &#8212; not a missing header</text>
+        <text x="20" y="374" class="w" font-size="12">"multiple definition"</text>
+        <text x="268" y="374" class="m">&#8594; the same symbol defined in two objects &#8212; a collision</text>
+      </svg>
       <div class="quiz" data-section="compilers"></div>
     </section>
 

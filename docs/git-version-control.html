@@ -13,6 +13,22 @@
     .term-card p { color:var(--muted); margin-bottom:0; }
     .diagram { margin:14px 0 0; padding:14px 16px; overflow-x:auto; background:var(--panel); border:1px solid var(--line); border-radius:8px; font-family:Consolas,Menlo,monospace; font-size:13px; line-height:1.45; color:var(--text); }
     .diagram-title { margin:14px 0 0; font-size:13px; font-weight:700; color:var(--accent-strong); text-transform:uppercase; }
+    .svgd { display:block; width:100%; max-width:840px; height:auto; margin:14px 0 0; background:var(--panel); border:1px solid var(--line); border-radius:8px; }
+    .svgd .n { fill:var(--bg); stroke:var(--line); }
+    .svgd .n.hot { fill:var(--accent-soft); stroke:var(--accent); }
+    .svgd .n.warn { fill:var(--warn-soft); stroke:var(--warn); }
+    .svgd text { fill:var(--text); font-family:Arial,Helvetica,sans-serif; font-size:13px; }
+    .svgd .t { font-weight:700; }
+    .svgd .m { fill:var(--muted); font-size:11.5px; }
+    .svgd .c { font-family:Consolas,Menlo,monospace; font-size:12px; }
+    .svgd .a { fill:var(--accent-strong); font-weight:700; }
+    .svgd .w { fill:var(--warn); font-weight:700; }
+    .svgd .e { stroke:var(--muted); stroke-width:1.5; fill:none; }
+    .svgd .e.acc { stroke:var(--accent); }
+    .svgd .e.dash { stroke-dasharray:5 4; }
+    .svgd .life { stroke:var(--line); stroke-width:1.2; stroke-dasharray:4 4; fill:none; }
+    .svgd .dot { fill:var(--accent-soft); stroke:var(--accent); stroke-width:1.5; }
+    .svgd .dot.old { fill:var(--warn-soft); stroke:var(--warn); stroke-dasharray:3 3; }
     .score-bar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:18px 0; padding:12px 15px; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); }
     .score-bar strong { font-size:17px; }
     .score-bar .section-note { margin:0; }
@@ -105,13 +121,36 @@
         <article class="term-card"><h3>Packfiles &amp; gc</h3><p>Loose objects are periodically compressed into packfiles with delta encoding; <code>git gc</code> repacks and prunes unreachable objects while respecting reflogs.</p></article>
       </div>
       <p class="diagram-title">The three trees and where commands move changes</p>
-      <pre class="diagram">working directory        staging area (index)        HEAD (last commit)
-   your edited files   ── git add ──►   staged snapshot  ── git commit ──►  new commit
-        ▲                                    ▲                                   |
-        └──── git restore &lt;file&gt; ───────────┘                                   |
-        └──── git restore --source=HEAD (or checkout) ──────────────────────────┘
-
-remote (origin):   git fetch ──► remote-tracking refs      git push ──► publish commits</pre>
+      <svg class="svgd" viewBox="0 0 760 270" role="img" aria-label="The three trees: working directory, index, HEAD, and the commands that move changes">
+        <defs>
+          <marker id="tt-m" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/></marker>
+          <marker id="tt-ma" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent)"/></marker>
+        </defs>
+        <rect class="n" x="30" y="46" width="200" height="52" rx="8"/>
+        <text x="130" y="68" text-anchor="middle" class="t">working directory</text>
+        <text x="130" y="86" text-anchor="middle" class="m">your edited files</text>
+        <rect class="n" x="280" y="46" width="200" height="52" rx="8"/>
+        <text x="380" y="68" text-anchor="middle" class="t">staging area (index)</text>
+        <text x="380" y="86" text-anchor="middle" class="m">staged snapshot</text>
+        <rect class="n hot" x="530" y="46" width="200" height="52" rx="8"/>
+        <text x="630" y="68" text-anchor="middle" class="t">HEAD</text>
+        <text x="630" y="86" text-anchor="middle" class="m">last commit</text>
+        <line class="e acc" x1="230" y1="62" x2="276" y2="62" marker-end="url(#tt-ma)"/>
+        <text x="253" y="38" text-anchor="middle" class="c a">git add</text>
+        <line class="e acc" x1="480" y1="62" x2="526" y2="62" marker-end="url(#tt-ma)"/>
+        <text x="503" y="38" text-anchor="middle" class="c a">git commit</text>
+        <path class="e" d="M370,98 V138 H134 V102" marker-end="url(#tt-m)"/>
+        <text x="252" y="132" text-anchor="middle" class="c">git restore &lt;file&gt;</text>
+        <path class="e" d="M640,98 V176 H120 V102" marker-end="url(#tt-m)"/>
+        <text x="380" y="170" text-anchor="middle" class="c">git restore --source=HEAD (or checkout)</text>
+        <line class="e dash" x1="30" y1="206" x2="730" y2="206"/>
+        <text x="30" y="234" class="m">remote (origin):</text>
+        <text x="140" y="234" class="c">git fetch</text>
+        <text x="205" y="234" class="m">&#8594; remote-tracking refs (safe, download only)</text>
+        <text x="470" y="234" class="c">git push</text>
+        <text x="532" y="234" class="m">&#8594; publish commits</text>
+        <text x="30" y="256" class="m">add moves changes right, restore moves them back left &#8212; every Git command is a move between these three trees</text>
+      </svg>
       <p class="diagram-title">The object graph: what a commit actually points at</p>
       <pre class="diagram">HEAD ──► refs/heads/main ──► commit e9a3f
                                │ tree    41c2 ──► tree (root directory)
@@ -154,17 +193,41 @@ feature  C─D                        feature  C─────D
                                     base = A (common ancestor); conflicts where
 merge → main just moves to D        both A..B and A..D changed the same lines</pre>
       <p class="diagram-title">What rebase actually does to the graph</p>
-      <pre class="diagram">before                              after: git rebase main   (run on feature)
+      <svg class="svgd" viewBox="0 0 760 300" role="img" aria-label="What rebase does: commits C and D are replayed as new copies C' and D'">
+        <text x="40" y="30" class="a">before</text>
+        <line class="e" x1="60" y1="80" x2="120" y2="80"/>
+        <circle class="dot" cx="80" cy="80" r="13"/><text x="80" y="85" text-anchor="middle" class="t">A</text>
+        <circle class="dot" cx="150" cy="80" r="13"/><text x="150" y="85" text-anchor="middle" class="t">B</text>
+        <line class="e" x1="93" y1="80" x2="137" y2="80"/>
+        <text x="180" y="85" class="c a">&#8592; main</text>
+        <line class="e" x1="88" y1="91" x2="112" y2="139"/>
+        <circle class="dot" cx="120" cy="150" r="13"/><text x="120" y="155" text-anchor="middle" class="t">C</text>
+        <line class="e" x1="133" y1="150" x2="177" y2="150"/>
+        <circle class="dot" cx="190" cy="150" r="13"/><text x="190" y="155" text-anchor="middle" class="t">D</text>
+        <text x="220" y="155" class="c a">&#8592; feature</text>
 
-main    ─A─B                        main    ─A─B
-              \                                   \
-feature        C─D                  feature        C'─D'   ← replayed COPIES:
-                                                            same diffs, NEW hashes
+        <text x="420" y="30" class="a">after: git rebase main (run on feature)</text>
+        <circle class="dot" cx="450" cy="80" r="13"/><text x="450" y="85" text-anchor="middle" class="t">A</text>
+        <line class="e" x1="463" y1="80" x2="507" y2="80"/>
+        <circle class="dot" cx="520" cy="80" r="13"/><text x="520" y="85" text-anchor="middle" class="t">B</text>
+        <text x="520" y="55" text-anchor="middle" class="c a">main</text>
+        <line class="e acc" x1="533" y1="80" x2="577" y2="80"/>
+        <circle class="dot" cx="590" cy="80" r="13"/><text x="590" y="85" text-anchor="middle" class="t">C'</text>
+        <line class="e acc" x1="603" y1="80" x2="647" y2="80"/>
+        <circle class="dot" cx="660" cy="80" r="13"/><text x="660" y="85" text-anchor="middle" class="t">D'</text>
+        <text x="660" y="55" text-anchor="middle" class="c a">feature</text>
+        <text x="625" y="112" text-anchor="middle" class="m">replayed COPIES: same diffs, NEW hashes</text>
+        <line class="e dash" x1="458" y1="91" x2="512" y2="139"/>
+        <circle class="dot old" cx="520" cy="150" r="13"/><text x="520" y="155" text-anchor="middle" class="m">C</text>
+        <line class="e dash" x1="533" y1="150" x2="577" y2="150"/>
+        <circle class="dot old" cx="590" cy="150" r="13"/><text x="590" y="155" text-anchor="middle" class="m">D</text>
+        <text x="555" y="182" text-anchor="middle" class="m">old C, D: unreachable (reflog only)</text>
 
-history reads linear, but C and D still exist (reachable via reflog) -
-nothing points at them anymore. This is why rebasing a branch someone
-else has pulled breaks them: their C/D no longer match your C'/D',
-and their next pull tries to merge both lineages together</pre>
+        <line class="e dash" x1="30" y1="210" x2="730" y2="210"/>
+        <text x="380" y="238" text-anchor="middle" class="m">history reads linear, but C and D still exist &#8212; nothing points at them anymore.</text>
+        <text x="380" y="258" text-anchor="middle" class="m">Rebasing a branch someone else pulled breaks them: their C/D no longer match your C'/D',</text>
+        <text x="380" y="278" text-anchor="middle" class="m">and their next pull tries to merge both lineages together.</text>
+      </svg>
       <div class="quiz" data-section="branch"></div>
     </section>
 
@@ -194,23 +257,41 @@ and their next pull tries to merge both lineages together</pre>
 
 fetch = download only (safe)      pull = fetch + merge/rebase into current branch</pre>
       <p class="diagram-title">Sequence: the life of a pull request</p>
-      <pre class="diagram">you (local)          origin (your fork)     upstream (project)    CI + reviewer
-  │ branch fix-bug          │                       │                   │
-  │ commit ... commit       │                       │                   │
-  ├── git push -u origin ──►│                       │                   │
-  │                         ├── open pull request ─►│                   │
-  │                         │                       ├── run checks ────►│
-  │                         │                       │◄─ review comments ┤
-  │ address feedback,       │                       │                   │
-  ├── push again ──────────►│  (the PR updates      │                   │
-  │                         │   automatically)      ├── re-run checks ─►│
-  │                         │                       │◄─ approve, green ─┤
-  │                         │                       │ merge into main   │
-  │◄─ git fetch upstream ───┼───────────────────────┤                   │
-  ▼  update local main, delete fix-bug
-
-pushing more commits to the same branch updates the open PR -
-review happens on the branch, merge happens on the server</pre>
+      <svg class="svgd" viewBox="0 0 760 380" role="img" aria-label="Sequence diagram: the life of a pull request across local, fork, upstream, and CI">
+        <defs>
+          <marker id="pr-m" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/></marker>
+          <marker id="pr-ma" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent)"/></marker>
+        </defs>
+        <rect class="n" x="30" y="14" width="140" height="30" rx="8"/><text x="100" y="34" text-anchor="middle" class="t">you (local)</text>
+        <rect class="n" x="240" y="14" width="140" height="30" rx="8"/><text x="310" y="34" text-anchor="middle" class="t">origin (fork)</text>
+        <rect class="n hot" x="450" y="14" width="140" height="30" rx="8"/><text x="520" y="34" text-anchor="middle" class="t">upstream</text>
+        <rect class="n" x="620" y="14" width="120" height="30" rx="8"/><text x="680" y="34" text-anchor="middle" class="t">CI + reviewer</text>
+        <line class="life" x1="100" y1="44" x2="100" y2="340"/>
+        <line class="life" x1="310" y1="44" x2="310" y2="340"/>
+        <line class="life" x1="520" y1="44" x2="520" y2="340"/>
+        <line class="life" x1="680" y1="44" x2="680" y2="340"/>
+        <text x="34" y="66" class="m">branch fix-bug, commit&#8230;</text>
+        <line class="e acc" x1="100" y1="84" x2="306" y2="84" marker-end="url(#pr-ma)"/>
+        <text x="120" y="78" class="c">git push -u origin fix-bug</text>
+        <line class="e" x1="310" y1="112" x2="516" y2="112" marker-end="url(#pr-m)"/>
+        <text x="330" y="106" class="m">open pull request</text>
+        <line class="e" x1="520" y1="138" x2="676" y2="138" marker-end="url(#pr-m)"/>
+        <text x="536" y="132" class="m">run checks</text>
+        <line class="e" x1="680" y1="164" x2="524" y2="164" marker-end="url(#pr-m)"/>
+        <text x="536" y="158" class="m">review comments</text>
+        <line class="e acc" x1="100" y1="196" x2="306" y2="196" marker-end="url(#pr-ma)"/>
+        <text x="120" y="190" class="m">address feedback, push again &#8212; the PR updates automatically</text>
+        <line class="e" x1="520" y1="224" x2="676" y2="224" marker-end="url(#pr-m)"/>
+        <text x="536" y="218" class="m">re-run checks</text>
+        <line class="e" x1="680" y1="250" x2="524" y2="250" marker-end="url(#pr-m)"/>
+        <text x="536" y="244" class="m">approve + green</text>
+        <rect class="n hot" x="450" y="264" width="140" height="26" rx="8"/>
+        <text x="520" y="281" text-anchor="middle">merge into main</text>
+        <line class="e acc" x1="520" y1="312" x2="104" y2="312" marker-end="url(#pr-ma)"/>
+        <text x="120" y="306" class="c">git fetch upstream</text>
+        <text x="34" y="334" class="m">update local main, delete fix-bug</text>
+        <text x="380" y="366" text-anchor="middle" class="m">review happens on the branch, merge happens on the server &#8212; pushing more commits updates the open PR</text>
+      </svg>
       <div class="quiz" data-section="collab"></div>
     </section>
 

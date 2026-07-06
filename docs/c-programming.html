@@ -13,6 +13,20 @@
     .term-card p { color:var(--muted); margin-bottom:0; }
     .diagram { margin:14px 0 0; padding:14px 16px; overflow-x:auto; background:var(--panel); border:1px solid var(--line); border-radius:8px; font-family:Consolas,Menlo,monospace; font-size:13px; line-height:1.45; color:var(--text); }
     .diagram-title { margin:14px 0 0; font-size:13px; font-weight:700; color:var(--accent-strong); text-transform:uppercase; }
+    .svgd { display:block; width:100%; max-width:840px; height:auto; margin:14px 0 0; background:var(--panel); border:1px solid var(--line); border-radius:8px; }
+    .svgd .n { fill:var(--bg); stroke:var(--line); }
+    .svgd .n.hot { fill:var(--accent-soft); stroke:var(--accent); }
+    .svgd .n.warn { fill:var(--warn-soft); stroke:var(--warn); }
+    .svgd text { fill:var(--text); font-family:Arial,Helvetica,sans-serif; font-size:13px; }
+    .svgd .t { font-weight:700; }
+    .svgd .m { fill:var(--muted); font-size:11.5px; }
+    .svgd .c { font-family:Consolas,Menlo,monospace; font-size:12px; }
+    .svgd .a { fill:var(--accent-strong); font-weight:700; }
+    .svgd .w { fill:var(--warn); font-weight:700; }
+    .svgd .e { stroke:var(--muted); stroke-width:1.5; fill:none; }
+    .svgd .e.acc { stroke:var(--accent); }
+    .svgd .e.dash { stroke-dasharray:5 4; }
+    .svgd .life { stroke:var(--line); stroke-width:1.2; stroke-dasharray:4 4; fill:none; }
     .score-bar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:18px 0; padding:12px 15px; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); }
     .score-bar strong { font-size:17px; }
     .score-bar .section-note { margin:0; }
@@ -219,20 +233,35 @@ tmp = realloc(buf, 8 * sizeof *buf);      // tmp, NEVER buf = realloc(buf,...)
   v                               v                        does not return
 reap zombie, read exit status   continue                  on success)</pre>
       <p class="diagram-title">Sequence: write() vs fsync() — when is data actually on disk?</p>
-      <pre class="diagram">user process              kernel (page cache)              disk
-     │  write(fd, buf, n)       │                            │
-     ├───── trap / syscall ────►│                            │
-     │    (user → kernel mode)  │ copy buf into page cache   │
-     │◄──── returns n ──────────┤ page marked dirty          │
-     │                          │                            │
-     │   "write succeeded" = data in kernel RAM, NOT on disk │
-     │                          │  ... writeback later ─────►│
-     │  fsync(fd)               │                            │
-     ├─────────────────────────►│ flush dirty pages ────────►│
-     │◄──── returns 0 ──────────┤◄──────── ack ──────────────┤
-     ▼
-durability point = fsync returning, not write returning —
-this ordering is the foundation of every database's crash safety</pre>
+      <svg class="svgd" viewBox="0 0 760 330" role="img" aria-label="Sequence diagram: write goes to the page cache, fsync makes it durable">
+        <defs>
+          <marker id="wf-m" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/></marker>
+          <marker id="wf-ma" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent)"/></marker>
+        </defs>
+        <rect class="n" x="60" y="14" width="160" height="30" rx="8"/><text x="140" y="34" text-anchor="middle" class="t">user process</text>
+        <rect class="n hot" x="310" y="14" width="180" height="30" rx="8"/><text x="400" y="34" text-anchor="middle" class="t">kernel (page cache)</text>
+        <rect class="n" x="590" y="14" width="100" height="30" rx="8"/><text x="640" y="34" text-anchor="middle" class="t">disk</text>
+        <line class="life" x1="140" y1="44" x2="140" y2="280"/>
+        <line class="life" x1="400" y1="44" x2="400" y2="280"/>
+        <line class="life" x1="640" y1="44" x2="640" y2="280"/>
+        <line class="e acc" x1="140" y1="78" x2="396" y2="78" marker-end="url(#wf-ma)"/>
+        <text x="160" y="72" class="c">write(fd, buf, n)</text>
+        <text x="300" y="94" class="m">trap: user &#8594; kernel mode</text>
+        <line class="e" x1="400" y1="112" x2="144" y2="112" marker-end="url(#wf-m)"/>
+        <text x="160" y="106" class="m">returns n &#8212; buf copied to page cache, page marked dirty</text>
+        <text x="390" y="140" text-anchor="middle" class="w">"write succeeded" = data in kernel RAM, NOT on disk</text>
+        <line class="e dash" x1="400" y1="164" x2="636" y2="164" marker-end="url(#wf-m)"/>
+        <text x="430" y="158" class="m">writeback&#8230; eventually</text>
+        <line class="e acc" x1="140" y1="196" x2="396" y2="196" marker-end="url(#wf-ma)"/>
+        <text x="160" y="190" class="c">fsync(fd)</text>
+        <line class="e" x1="400" y1="222" x2="636" y2="222" marker-end="url(#wf-m)"/>
+        <text x="430" y="216" class="m">flush dirty pages</text>
+        <line class="e" x1="640" y1="246" x2="404" y2="246" marker-end="url(#wf-m)"/>
+        <text x="470" y="240" class="m">ack</text>
+        <line class="e" x1="400" y1="268" x2="144" y2="268" marker-end="url(#wf-m)"/>
+        <text x="160" y="262" class="m">returns 0 &#8212; NOW it is durable</text>
+        <text x="380" y="310" text-anchor="middle" class="m">durability point = fsync returning, not write returning &#8212; the foundation of every database's crash safety</text>
+      </svg>
       <div class="quiz" data-section="systems"></div>
     </section>
 
@@ -302,31 +331,63 @@ struct { _Alignas(64) long v; } counters[2];   // 64 bytes apart</pre>
         <article class="term-card"><h3>pthreads primitives</h3><p>A <code>pthread_mutex_t</code> guards a critical section; a condition variable waits on a predicate in a loop; consistent lock ordering avoids deadlock. Keep critical sections short.</p></article>
       </div>
       <p class="diagram-title">The C build pipeline and where errors surface</p>
-      <pre class="diagram">foo.c ──preprocess──► foo.i ──compile──► foo.s ──assemble──► foo.o ──┐
-       (#include,               (syntax +          (machine                │
-        macros, #if)             type check)        code)                  │
-                                                                           v
-libc.a / libm.so  ─────────────────────────────────────────────────► linker ──► a.out
-                                                                           |
-   syntax/type errors: compiler        "undefined reference": linker  ◄────┘
-   runtime bugs: ASan / TSan / UBSan / Valgrind on the built binary</pre>
+      <svg class="svgd" viewBox="0 0 760 226" role="img" aria-label="The C build pipeline: preprocess, compile, assemble, link">
+        <defs><marker id="cb-m" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/></marker></defs>
+        <rect class="n" x="24" y="44" width="80" height="32" rx="8"/><text x="64" y="65" text-anchor="middle" class="c t">foo.c</text>
+        <line class="e" x1="104" y1="60" x2="166" y2="60" marker-end="url(#cb-m)"/>
+        <text x="135" y="50" text-anchor="middle" class="m">preprocess</text>
+        <text x="135" y="90" text-anchor="middle" class="m">#include, macros</text>
+        <rect class="n" x="170" y="44" width="80" height="32" rx="8"/><text x="210" y="65" text-anchor="middle" class="c t">foo.i</text>
+        <line class="e" x1="250" y1="60" x2="312" y2="60" marker-end="url(#cb-m)"/>
+        <text x="281" y="50" text-anchor="middle" class="m">compile</text>
+        <text x="281" y="90" text-anchor="middle" class="m">syntax + types</text>
+        <rect class="n" x="316" y="44" width="80" height="32" rx="8"/><text x="356" y="65" text-anchor="middle" class="c t">foo.s</text>
+        <line class="e" x1="396" y1="60" x2="458" y2="60" marker-end="url(#cb-m)"/>
+        <text x="427" y="50" text-anchor="middle" class="m">assemble</text>
+        <rect class="n" x="462" y="44" width="80" height="32" rx="8"/><text x="502" y="65" text-anchor="middle" class="c t">foo.o</text>
+        <line class="e" x1="542" y1="60" x2="604" y2="60" marker-end="url(#cb-m)"/>
+        <text x="573" y="50" text-anchor="middle" class="m">link</text>
+        <rect class="n hot" x="608" y="44" width="80" height="32" rx="8"/><text x="648" y="65" text-anchor="middle" class="c t">a.out</text>
+        <rect class="n" x="462" y="118" width="130" height="32" rx="8"/><text x="527" y="139" text-anchor="middle" class="c">libc.a / libm.so</text>
+        <path class="e" d="M560,118 C570,96 570,84 573,66" marker-end="url(#cb-m)"/>
+        <text x="24" y="186" class="m">syntax/type errors &#8594; compiler &#183; "undefined reference" &#8594; linker &#183; runtime bugs &#8594; ASan / TSan / UBSan / Valgrind on the built binary</text>
+        <text x="24" y="208" class="m">two phases, two failure modes: a missing header breaks the compile, a missing library breaks the link</text>
+      </svg>
       <p class="diagram-title">Call flow through the PLT: how a libc call actually lands</p>
-      <pre class="diagram">FIRST call to printf (lazy binding)         EVERY LATER call
-main: call printf@plt                       main: call printf@plt
-        │                                           │
-        ▼                                           ▼
-  PLT stub: jmp *GOT[printf]                  PLT stub: jmp *GOT[printf]
-        │  GOT still points at the                  │  GOT now points at libc
-        ▼  dynamic-loader resolver                  ▼
-  ld.so: search libc.so for "printf",         printf in libc.so runs
-  PATCH GOT[printf] with its address          directly (one extra jmp,
-        │                                     no resolver ever again)
-        ▼
-  jump to the real printf
+      <svg class="svgd" viewBox="0 0 760 350" role="img" aria-label="Call flow through the PLT: first call resolves the symbol, later calls jump directly">
+        <defs><marker id="plt-m" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/></marker></defs>
+        <text x="185" y="28" text-anchor="middle" class="a">FIRST call to printf (lazy binding)</text>
+        <rect class="n" x="85" y="42" width="200" height="34" rx="8"/>
+        <text x="185" y="64" text-anchor="middle" class="c">main: call printf@plt</text>
+        <line class="e" x1="185" y1="76" x2="185" y2="98" marker-end="url(#plt-m)"/>
+        <rect class="n" x="85" y="102" width="200" height="34" rx="8"/>
+        <text x="185" y="124" text-anchor="middle" class="c">PLT stub: jmp *GOT[printf]</text>
+        <line class="e" x1="185" y1="136" x2="185" y2="158" marker-end="url(#plt-m)"/>
+        <text x="196" y="152" class="m">GOT &#8594; resolver</text>
+        <rect class="n warn" x="60" y="162" width="250" height="48" rx="8"/>
+        <text x="185" y="182" text-anchor="middle" class="t">ld.so: find "printf" in libc.so</text>
+        <text x="185" y="200" text-anchor="middle" class="m">PATCH GOT[printf] with its address</text>
+        <line class="e" x1="185" y1="210" x2="185" y2="232" marker-end="url(#plt-m)"/>
+        <rect class="n hot" x="85" y="236" width="200" height="34" rx="8"/>
+        <text x="185" y="258" text-anchor="middle" class="t">the real printf runs</text>
 
-this is why the first call to a shared-library function is slower,
-what LD_PRELOAD hooks (it wins the symbol search), and what
--fno-plt / -Bsymbolic trade away</pre>
+        <text x="575" y="28" text-anchor="middle" class="a">EVERY LATER call</text>
+        <rect class="n" x="475" y="42" width="200" height="34" rx="8"/>
+        <text x="575" y="64" text-anchor="middle" class="c">main: call printf@plt</text>
+        <line class="e" x1="575" y1="76" x2="575" y2="98" marker-end="url(#plt-m)"/>
+        <rect class="n" x="475" y="102" width="200" height="34" rx="8"/>
+        <text x="575" y="124" text-anchor="middle" class="c">PLT stub: jmp *GOT[printf]</text>
+        <line class="e acc" x1="575" y1="136" x2="575" y2="158" marker-end="url(#plt-m)"/>
+        <text x="586" y="152" class="m">GOT &#8594; libc directly</text>
+        <rect class="n hot" x="475" y="162" width="200" height="34" rx="8"/>
+        <text x="575" y="184" text-anchor="middle" class="t">printf in libc.so runs</text>
+        <text x="575" y="222" text-anchor="middle" class="m">one extra jmp &#8212; the resolver</text>
+        <text x="575" y="238" text-anchor="middle" class="m">never runs again</text>
+
+        <line class="e dash" x1="24" y1="292" x2="736" y2="292"/>
+        <text x="380" y="316" text-anchor="middle" class="m">why the first shared-library call is slower, what LD_PRELOAD hooks (it wins the symbol search),</text>
+        <text x="380" y="334" text-anchor="middle" class="m">and what -fno-plt / -Bsymbolic trade away</text>
+      </svg>
       <div class="quiz" data-section="libraries"></div>
     </section>
   </main>

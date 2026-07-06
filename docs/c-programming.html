@@ -120,37 +120,34 @@
         <article class="term-card"><h3>Type punning done right</h3><p>Reinterpret bytes with <code>memcpy</code>, a union member, or a <code>char*</code> - never by casting to an incompatible pointer type, which breaks strict aliasing and can miscompile at -O2.</p></article>
       </div>
       <p class="diagram-title">Typical process memory layout (low to high address)</p>
-      <pre class="diagram">low  +------------------+
-     | .text (code)     |  read-only, executable
-     +------------------+
-     | .rodata          |  string literals, const data
-     +------------------+
-     | .data            |  initialized globals/statics (copied from image)
-     +------------------+
-     | .bss             |  zero-initialized globals/statics
-     +------------------+
-     | heap  --------->  |  malloc/free, grows up
-     |        ...        |
-     |        ...        |
-     |  <--------- stack |  automatic locals + return addrs, grows down
-high +------------------+
-
-automatic = lifetime tied to scope     static/global = whole program
-allocated (heap) = until you free()     dangling = pointer outliving object</pre>
+      <svg class="svgd" viewBox="0 0 640 292" role="img" aria-label="Process memory layout, low address at top to high at bottom: text, rodata, data, bss, then heap growing up and stack growing down with free space between them">
+        <defs><marker id="ml-a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent)"/></marker></defs>
+        <text x="8" y="34" class="m">low</text>
+        <text x="6" y="286" class="m">high</text>
+        <rect class="n" x="52" y="16" width="380" height="32" rx="6"/><text x="68" y="37" class="t">.text</text><text x="152" y="37" class="m">code — read-only, executable</text>
+        <rect class="n" x="52" y="52" width="380" height="32" rx="6"/><text x="68" y="73" class="t">.rodata</text><text x="152" y="73" class="m">string literals, const data</text>
+        <rect class="n" x="52" y="88" width="380" height="32" rx="6"/><text x="68" y="109" class="t">.data</text><text x="152" y="109" class="m">initialized globals / statics</text>
+        <rect class="n" x="52" y="124" width="380" height="32" rx="6"/><text x="68" y="145" class="t">.bss</text><text x="152" y="145" class="m">zero-initialized globals / statics</text>
+        <rect class="n hot" x="52" y="168" width="380" height="32" rx="6"/><text x="68" y="189" class="t">heap</text><text x="152" y="189" class="m">malloc / free — grows up</text>
+        <path class="e acc" d="M446 196 L446 170" marker-end="url(#ml-a)"/>
+        <text x="242" y="226" text-anchor="middle" class="m">. . . unused address space . . .</text>
+        <rect class="n hot" x="52" y="240" width="380" height="32" rx="6"/><text x="68" y="261" class="t">stack</text><text x="152" y="261" class="m">locals + return addresses — grows down</text>
+        <path class="e acc" d="M446 244 L446 270" marker-end="url(#ml-a)"/>
+      </svg>
       <p class="diagram-title">Function call flow: what the stack does</p>
-      <pre class="diagram">int add(int a, int b) { return a + b; }
-int main(void)        { int s = add(2, 3); }
-
-call flow                              stack (grows down)
-main executing                         ┌ main's frame:  s = ?        ┐
-  │
-  │ call add(2, 3)                     ┌ main's frame:  s = ?        ┐
-  │   args → rdi, rsi (SysV ABI)       │ return address (into main)  │
-  │   return address pushed            └ add's frame:   a=2, b=3     ┘
-  │
-  │ add computes 5 → returns in rax    add's frame POPPED — its locals
-  ▼                                    are gone (returning &a would
-main resumes:  s = 5                   hand back a dangling pointer)</pre>
+      <svg class="svgd" viewBox="0 0 720 194" role="img" aria-label="Function call flow: main running, call add, add returns in a register, main resumes; add's frame is popped on return so returning a local address dangles">
+        <defs><marker id="cf-a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/></marker></defs>
+        <text x="14" y="22" class="c">int add(int a, int b) { return a + b; }</text>
+        <text x="14" y="40" class="c">int main(void)        { int s = add(2, 3); }</text>
+        <rect class="n" x="12" y="60" width="160" height="54" rx="6"/><text x="24" y="84" class="t">main() running</text><text x="24" y="102" class="m">s = ?</text>
+        <path class="e" d="M174 87 L188 87" marker-end="url(#cf-a)"/>
+        <rect class="n" x="190" y="60" width="160" height="54" rx="6"/><text x="202" y="84" class="t">call add(2, 3)</text><text x="202" y="102" class="m">args → registers</text>
+        <path class="e" d="M352 87 L366 87" marker-end="url(#cf-a)"/>
+        <rect class="n hot" x="368" y="60" width="160" height="54" rx="6"/><text x="380" y="84" class="t">add returns 5</text><text x="380" y="102" class="m">result in rax</text>
+        <path class="e" d="M530 87 L544 87" marker-end="url(#cf-a)"/>
+        <rect class="n" x="546" y="60" width="160" height="54" rx="6"/><text x="558" y="84" class="t">main resumes</text><text x="558" y="102" class="m">s = 5</text>
+        <rect class="n warn" x="12" y="140" width="694" height="38" rx="6"/><text x="26" y="164" class="w">Popped on return:</text><text x="172" y="164" class="m">add's locals are gone — returning &amp;a would hand back a dangling pointer.</text>
+      </svg>
       <div class="quiz" data-section="language"></div>
     </section>
 
@@ -174,34 +171,39 @@ main resumes:  s = 5                   hand back a dangling pointer)</pre>
         <article class="term-card"><h3>Struct member order</h3><p>The compiler pads between members to satisfy each type's alignment, so field order changes a struct's size. Order members widest-to-narrowest to minimize padding; packed structs drop padding but create misaligned members that are slow or undefined to access through a pointer.</p></article>
       </div>
       <p class="diagram-title">Heap block lifecycle and the classic bugs</p>
-      <pre class="diagram">p = malloc(n) ──► [ live block ]  ── use p ──►  free(p) ──► [ reclaimed ]
-                       |                              |
-                       | forget to free               | keep using p
-                       v                              v
-                    LEAK (unreachable,           USE-AFTER-FREE (UB;
-                    never returned)              allocator may reuse memory)
-
-              free(p); ... free(p);   ──►  DOUBLE FREE (UB, heap corruption)
-
-safe habit:  free(p); p = NULL;   // free(NULL) is a no-op, *NULL faults cleanly</pre>
+      <svg class="svgd" viewBox="0 0 720 238" role="img" aria-label="Heap block lifecycle: malloc gives a live block, free reclaims it; forgetting to free leaks, using after free is undefined behavior, and double free corrupts the heap">
+        <defs>
+          <marker id="hp-a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/></marker>
+          <marker id="hp-w" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--warn)"/></marker>
+        </defs>
+        <rect class="n" x="12" y="14" width="140" height="40" rx="6"/><text x="82" y="39" text-anchor="middle" class="t">p = malloc(n)</text>
+        <path class="e" d="M154 34 L186 34" marker-end="url(#hp-a)"/>
+        <rect class="n hot" x="188" y="14" width="120" height="40" rx="6"/><text x="248" y="39" text-anchor="middle" class="t">live block</text>
+        <text x="355" y="28" text-anchor="middle" class="m">use p</text><path class="e" d="M310 34 L400 34" marker-end="url(#hp-a)"/>
+        <rect class="n" x="402" y="14" width="110" height="40" rx="6"/><text x="457" y="39" text-anchor="middle" class="t">free(p)</text>
+        <path class="e" d="M514 34 L560 34" marker-end="url(#hp-a)"/>
+        <rect class="n" x="562" y="14" width="140" height="40" rx="6"/><text x="632" y="39" text-anchor="middle" class="m">reclaimed</text>
+        <text x="264" y="80" class="m">forget to free</text><path class="e w" d="M248 56 L248 96" marker-end="url(#hp-w)"/>
+        <text x="473" y="80" class="m">keep using p</text><path class="e w" d="M457 56 L457 96" marker-end="url(#hp-w)"/>
+        <rect class="n warn" x="150" y="100" width="200" height="44" rx="6"/><text x="164" y="121" class="w">LEAK</text><text x="164" y="138" class="m">unreachable, never returned</text>
+        <rect class="n warn" x="382" y="100" width="240" height="44" rx="6"/><text x="396" y="121" class="w">USE-AFTER-FREE (UB)</text><text x="396" y="138" class="m">allocator may reuse the memory</text>
+        <rect class="n warn" x="12" y="162" width="420" height="32" rx="6"/><text x="26" y="183" class="m"><tspan class="c">free(p); ... free(p);</tspan> → DOUBLE FREE (heap corruption)</text>
+        <rect class="n" x="12" y="202" width="690" height="30" rx="6"/><text x="26" y="222" class="m">safe habit: <tspan class="c">free(p); p = NULL;</tspan> — free(NULL) is a no-op, *NULL faults cleanly</text>
+      </svg>
       <p class="diagram-title">realloc data flow: growing a dynamic array safely</p>
-      <pre class="diagram">buf ──► [e0 e1 e2 e3]  cap 4, need a 5th element
-
-tmp = realloc(buf, 8 * sizeof *buf);      // tmp, NEVER buf = realloc(buf,...)
-        │
-   ┌────┴──────────────────────┐
-   │ room to grow in place?    │
-   └────┬─────────────────┬────┘
-        │ yes             │ no: new block, copy 4 elems, free old
-        ▼                 ▼
-  tmp == buf         tmp != buf  →  every stale copy of the OLD buf
-  (same address)     now DANGLES — re-derive pointers, never cache them
-        │                 │
-        └────────┬────────┘
-                 ▼
-  tmp == NULL?  allocation failed but the OLD block is STILL VALID —
-                assigning realloc's result straight to buf would have
-                leaked your only reference. Otherwise: buf = tmp; cap = 8;</pre>
+      <svg class="svgd" viewBox="0 0 720 252" role="img" aria-label="Safe realloc data flow: assign the result to a temporary, handle in-place versus moved, check for NULL because the old block stays valid, then reassign buf">
+        <defs><marker id="rl-a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/></marker></defs>
+        <rect class="n hot" x="160" y="12" width="400" height="34" rx="6"/><text x="360" y="34" text-anchor="middle" class="c">int *tmp = realloc(buf, 8 * sizeof *buf);</text>
+        <text x="360" y="64" text-anchor="middle" class="m">use a temporary — never  buf = realloc(buf, ...)</text>
+        <path class="e" d="M360 70 L360 92" marker-end="url(#rl-a)"/>
+        <rect class="n" x="70" y="94" width="270" height="46" rx="6"/><text x="84" y="115" class="t">tmp == buf</text><text x="84" y="132" class="m">grew in place — same address</text>
+        <rect class="n warn" x="390" y="94" width="300" height="46" rx="6"/><text x="404" y="115" class="w">tmp != buf</text><text x="404" y="132" class="m">moved: old block freed, stale copies dangle</text>
+        <path class="e" d="M205 140 L352 161" marker-end="url(#rl-a)"/>
+        <path class="e" d="M540 140 L368 161" marker-end="url(#rl-a)"/>
+        <rect class="n warn" x="120" y="164" width="480" height="44" rx="6"/><text x="134" y="185" class="w">tmp == NULL? the OLD block is still valid</text><text x="134" y="202" class="m">assigning realloc's result straight to buf would leak your only reference</text>
+        <path class="e" d="M360 208 L360 220" marker-end="url(#rl-a)"/>
+        <rect class="n hot" x="255" y="222" width="210" height="28" rx="6"/><text x="360" y="241" text-anchor="middle" class="c">buf = tmp; cap = 8;</text>
+      </svg>
       <div class="quiz" data-section="memory"></div>
     </section>
 
@@ -223,15 +225,22 @@ tmp = realloc(buf, 8 * sizeof *buf);      // tmp, NEVER buf = realloc(buf,...)
         <article class="term-card"><h3>volatile for hardware</h3><p>A memory-mapped device register is declared <code>volatile</code> so every read/write actually hits the address and is not cached in a register or optimized away - but volatile gives no atomicity or cross-thread ordering.</p></article>
       </div>
       <p class="diagram-title">fork + exec + wait, and the file-descriptor table</p>
-      <pre class="diagram">parent                         parent                 child
-  |  fd table: 0 1 2 ...          |                      | (copy of fd table)
-  |  pid = fork();  ──────────────+──────────────────────+
-  |                               | pid &gt; 0 (child PID)   | pid == 0
-  |                               v                      v
-  |                          waitpid(pid,&st) &lt;── exit ── execve("prog",...)
-  |                               |               status  (image replaced;
-  v                               v                        does not return
-reap zombie, read exit status   continue                  on success)</pre>
+      <svg class="svgd" viewBox="0 0 720 210" role="img" aria-label="fork splits into parent and child; the child execs a new program, the parent waits and reaps it, and the exit status flows back to waitpid">
+        <defs>
+          <marker id="ff-a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/></marker>
+          <marker id="ff-aa" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent)"/></marker>
+        </defs>
+        <rect class="n hot" x="280" y="12" width="160" height="34" rx="6"/><text x="360" y="34" text-anchor="middle" class="c">pid = fork();</text>
+        <text x="236" y="70" class="m">pid &gt; 0</text><path class="e" d="M322 48 L198 84" marker-end="url(#ff-a)"/>
+        <text x="468" y="70" class="m">pid == 0</text><path class="e" d="M398 48 L522 84" marker-end="url(#ff-a)"/>
+        <rect class="n" x="40" y="86" width="300" height="44" rx="6"/><text x="54" y="107" class="t">parent process</text><text x="54" y="124" class="m">fork() returned the child's PID</text>
+        <rect class="n" x="380" y="86" width="300" height="44" rx="6"/><text x="394" y="107" class="t">child process</text><text x="394" y="124" class="m">fork() returned 0 · copy of fd table</text>
+        <path class="e" d="M190 130 L190 152" marker-end="url(#ff-a)"/>
+        <path class="e" d="M530 130 L530 152" marker-end="url(#ff-a)"/>
+        <rect class="n" x="40" y="154" width="300" height="48" rx="6"/><text x="54" y="176" class="c">waitpid(pid, &amp;st)</text><text x="54" y="193" class="m">blocks, reaps the zombie, reads exit status</text>
+        <rect class="n" x="380" y="154" width="300" height="48" rx="6"/><text x="394" y="176" class="c">execve("prog", ...)</text><text x="394" y="193" class="m">replaces the image; no return on success</text>
+        <path class="e acc" d="M378 178 L344 178" marker-end="url(#ff-aa)"/>
+      </svg>
       <p class="diagram-title">Sequence: write() vs fsync() — when is data actually on disk?</p>
       <svg class="svgd" viewBox="0 0 760 330" role="img" aria-label="Sequence diagram: write goes to the page cache, fsync makes it durable">
         <defs>
@@ -285,31 +294,35 @@ reap zombie, read exit status   continue                  on success)</pre>
         <article class="term-card"><h3>Auto-vectorization</h3><p>Simple, alias-free loops vectorize automatically under <code>-O3 -march=native</code>; confirm with <code>-fopt-info-vec</code>. Aliasing, data-dependent branches, and loop-carried dependencies silently block it - annotate with <code>restrict</code> and keep the body straight-line.</p></article>
       </div>
       <p class="diagram-title">Memory hierarchy: capacity grows, latency grows</p>
-      <pre class="diagram">          size            approx latency
-registers  ~KB             &lt; 1 ns        <-- keep hot values here
-L1 cache   ~32-64 KB       ~1 ns
-L2 cache   ~256KB-1MB      ~4 ns
-L3 cache   ~8-32 MB        ~15 ns
-DRAM       GBs             ~80-100 ns    <-- ~100x an L1 hit
-SSD/disk   TBs             10us - ms
-
-goal: raise "work per byte loaded" (arithmetic intensity) so the working
-set stays high in the hierarchy - tiling/blocking, contiguous access, SoA.</pre>
+      <svg class="svgd" viewBox="0 0 640 252" role="img" aria-label="Memory hierarchy pyramid: registers, L1, L2, L3 caches, DRAM, and SSD or disk, where capacity and latency both grow toward the bottom">
+        <text x="12" y="30" class="m">smaller,</text><text x="12" y="44" class="m">faster</text>
+        <text x="16" y="208" class="m">bigger,</text><text x="16" y="222" class="m">slower</text>
+        <rect class="n hot" x="200" y="12" width="240" height="30" rx="6"/><text x="320" y="32" text-anchor="middle" class="t">registers — ~KB · &lt; 1 ns</text>
+        <rect class="n" x="170" y="48" width="300" height="30" rx="6"/><text x="320" y="68" text-anchor="middle" class="m">L1 cache — ~32-64 KB · ~1 ns</text>
+        <rect class="n" x="140" y="84" width="360" height="30" rx="6"/><text x="320" y="104" text-anchor="middle" class="m">L2 cache — ~256 KB-1 MB · ~4 ns</text>
+        <rect class="n" x="110" y="120" width="420" height="30" rx="6"/><text x="320" y="140" text-anchor="middle" class="m">L3 cache — ~8-32 MB · ~15 ns</text>
+        <rect class="n" x="80" y="156" width="480" height="30" rx="6"/><text x="320" y="176" text-anchor="middle" class="m">DRAM — GBs · ~80-100 ns  (~100x an L1 hit)</text>
+        <rect class="n" x="50" y="192" width="540" height="30" rx="6"/><text x="320" y="212" text-anchor="middle" class="m">SSD / disk — TBs · 10 µs – ms</text>
+        <text x="320" y="244" text-anchor="middle" class="m">Goal: raise work-per-byte-loaded (tiling, contiguous access, struct-of-arrays) to keep the working set high.</text>
+      </svg>
       <p class="diagram-title">False sharing: two threads, one cache line</p>
-      <pre class="diagram">long counters[2];   // thread 0 writes [0], thread 1 writes [1] — "independent"
-
-core 0                                   core 1
-  │ write counters[0]                       │ write counters[1]
-  ▼                                         ▼
-┌──────────────── one 64-byte cache line ─────────────────┐
-│  counters[0]  │  counters[1]  │        unused           │
-└──────────────────────────────────────────────────────────┘
-cache coherence (MESI) tracks whole LINES: each core's write
-invalidates the other core's copy → the line ping-pongs between
-cores and the "independent" counters run 10-100x slower
-
-fix — one line per thread:
-struct { _Alignas(64) long v; } counters[2];   // 64 bytes apart</pre>
+      <svg class="svgd" viewBox="0 0 700 232" role="img" aria-label="False sharing: two cores write adjacent counters that live on one cache line, so each write invalidates the other core's copy and the line ping-pongs; aligning each counter to its own line fixes it">
+        <defs><marker id="fs-a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/></marker></defs>
+        <text x="350" y="18" text-anchor="middle" class="m"><tspan class="c">long counters[2];</tspan> — two threads write "independent" slots</text>
+        <rect class="n hot" x="60" y="30" width="180" height="34" rx="6"/><text x="150" y="52" text-anchor="middle" class="t">core 0 → counters[0]</text>
+        <rect class="n hot" x="460" y="30" width="180" height="34" rx="6"/><text x="550" y="52" text-anchor="middle" class="t">core 1 → counters[1]</text>
+        <path class="e" d="M150 64 L150 96" marker-end="url(#fs-a)"/>
+        <path class="e" d="M550 64 L332 96" marker-end="url(#fs-a)"/>
+        <text x="350" y="90" text-anchor="middle" class="m">one 64-byte cache line</text>
+        <rect class="n" x="60" y="98" width="580" height="40" rx="6"/>
+        <line class="e" x1="240" y1="98" x2="240" y2="138"/>
+        <line class="e" x1="420" y1="98" x2="420" y2="138"/>
+        <text x="150" y="122" text-anchor="middle" class="c">counters[0]</text>
+        <text x="330" y="122" text-anchor="middle" class="c">counters[1]</text>
+        <text x="530" y="122" text-anchor="middle" class="m">unused</text>
+        <rect class="n warn" x="60" y="150" width="580" height="30" rx="6"/><text x="74" y="170" class="m">Each write invalidates the other core's copy → the line ping-pongs, counters run 10-100x slower.</text>
+        <rect class="n hot" x="60" y="190" width="580" height="30" rx="6"/><text x="74" y="210" class="m">Fix: <tspan class="c">struct { _Alignas(64) long v; } counters[2];</tspan> — one cache line per thread.</text>
+      </svg>
       <div class="quiz" data-section="performance"></div>
     </section>
 

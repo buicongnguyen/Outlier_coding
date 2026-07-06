@@ -1327,9 +1327,9 @@ const quizData = {
         ["ntohl(raw)", true],
         ["raw", false],
         ["byteswap32(raw)   /* unconditional swap */", false],
-        ["raw & 0xFF", false]
+        ["raw >> 24", false]
       ],
-      explain: "Network byte order is big-endian; x86 and most ARM are little-endian, so using raw directly reads 00 00 00 01 as 0x01000000 = 16,777,216 - a 16 MB 'length' from a 1-byte message. ntohl means network-to-host-long: it swaps on little-endian hosts and is a no-op on big-endian ones, so the same source is correct everywhere. An unconditional swap breaks on big-endian hosts, and raw & 0xFF happens to work for tiny lengths only - the worst kind of almost-correct."
+      explain: "Network byte order is big-endian; x86 and most ARM are little-endian, so using raw directly reads 00 00 00 01 as 0x01000000 = 16,777,216 - a 16 MB 'length' from a 1-byte message. ntohl means network-to-host-long: it swaps on little-endian hosts and is a no-op on big-endian ones, so the same source is correct everywhere. An unconditional swap breaks on big-endian hosts, and raw >> 24 extracts the right value only on little-endian hosts and only for lengths under 256 - the worst kind of almost-correct."
     },
     {
       mono: true,
